@@ -72,3 +72,58 @@ def test_anonymize_drops_dense_series_and_shifts_values():
 def test_anonymize_is_deterministic_for_a_seed():
     series = {"2026-01-01": {"steps": 10000}}
     assert metrics.anonymize(series, seed=7) == metrics.anonymize(series, seed=7)
+
+
+def test_anonymize_touches_every_numeric_field():
+    """白名单式脱敏最容易漏字段（漏了就是隐私泄露），这里守住。
+
+    只要没被处理过，脱敏后应当与真值不同。标签类（_source / captured_at）
+    和列表（qc）不算敏感数值，跳过。
+    """
+    series = {
+        "2026-01-01": {
+            "_source": "shortcut",
+            "captured_at": "18:02",
+            "steps": 8123,
+            "distance_km": 5.83,
+            "active_kcal": 401.7,
+            "basal_kcal": 1503.9,
+            "exercise_min": 31,
+            "hrv_ms": 47.19,
+            "hr_avg": 71.8,
+            "hr_resting": 72,
+            "hr_max": 103.0,
+            "hr_min": 53.0,
+            "sleep_asleep_h": 9.63,
+            "sleep_inbed_h": 10.57,
+            "sleep_efficiency": 91.2,
+            "sleep": {"deep": 30, "core": 400, "rem": 100, "awake": 30},
+            "qc": [],
+            "workouts": [
+                {"type": "swimming", "calories": 330, "duration_min": 183.5,
+                 "distance_km": 2.13, "source": "watch"}
+            ],
+        }
+    }
+    src = series["2026-01-01"]
+    anon = metrics.anonymize(series, seed=3)["2026-01-01"]
+
+    for k, v in src.items():
+        if k in ("_source", "captured_at", "qc"):
+            continue
+        if isinstance(v, (int, float)):
+            assert anon[k] != v, f"{k} 没有被脱敏"
+
+    for k, v in src["sleep"].items():
+        assert anon["sleep"][k] != v, f"sleep.{k} 没有被脱敏"
+
+    for k in ("calories", "duration_min", "distance_km"):
+        assert anon["workouts"][0][k] != src["workouts"][0][k], f"workouts.{k} 没有被脱敏"
+
+
+def test_anonymize_keeps_non_sensitive_labels():
+    """脱敏不该误伤来源标签 —— 否则仪表盘/报告里看不出数据是哪来的。"""
+    series = {"2026-01-01": {"_source": "shortcut", "captured_at": "18:02", "steps": 8000}}
+    anon = metrics.anonymize(series, seed=3)["2026-01-01"]
+    assert anon["_source"] == "shortcut"
+    assert anon["captured_at"] == "18:02"

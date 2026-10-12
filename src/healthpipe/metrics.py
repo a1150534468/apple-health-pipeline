@@ -92,7 +92,14 @@ _SCALE_KEYS = (
     "sleep_asleep_h", "sleep_inbed_h", "hrv_ms",
 )
 # 需要加性扰动的字段（心率类，缩放意义不大）
-_OFFSET_KEYS = ("hr_avg", "hr_resting")
+_OFFSET_KEYS = ("hr_avg", "hr_resting", "hr_max", "hr_min")
+
+# workouts[] 里的嵌套数值字段（跟顶层同名的一起生成因子）
+_NESTED_SCALE_KEYS = ("calories", "duration_min", "distance_km")
+
+# sleep_efficiency 是「实睡 / 在床」的比例。等比缩放后分子分母同步变，比值不变 ——
+# 光靠缩放抹不掉，只能加个小抖动。
+_EFFICIENCY_JITTER = 1.5
 
 
 def _shifted_factor(rnd: random.Random) -> float:
@@ -106,14 +113,33 @@ def _shifted_factor(rnd: random.Random) -> float:
             return f
 
 
+def _shifted_offset(rnd: random.Random, mag: float, floor: float = 0.8) -> float:
+    """生成一个绝对值不小于 floor 的加性扰动。
+
+    同 ``_shifted_factor`` 的道理：结果要按 0.1 取整，扰动太小会被四舍五入回原值，
+    等于没脱敏 —— 所以也要显式避开零附近。
+    """
+    while True:
+        o = rnd.uniform(-mag, mag)
+        if abs(o) >= floor:
+            return o
+
+
 def anonymize(series: dict[str, dict], seed: int = 20261011) -> dict[str, dict]:
     """生成对外公开用的脱敏数据：每个指标一个全局因子 + 每日小幅抖动。
 
     日期保持不变；原始 ``hr_points`` / ``sleep_segments`` 直接丢弃（点太密，
     缩放后仍可能被反推）。
+
+    注意：这里是**白名单**式处理 —— 加了新字段但忘了登记，就会原样泄露。
+    ``tests/test_metrics.py::test_anonymize_touches_every_numeric_field``
+    守着这条线。
     """
     rnd = random.Random(seed)
-    scale = {k: _shifted_factor(rnd) for k in _SCALE_KEYS}
+    # 用 sorted 保证因子分配顺序稳定：set 的迭代顺序受 PYTHONHASHSEED 影响，
+    # 直接用 set 会让同一个 seed 产出不同结果。
+    factor_keys = sorted(set(_SCALE_KEYS) | set(_NESTED_SCALE_KEYS))
+    scale = {k: _shifted_factor(rnd) for k in factor_keys}
 
     out: dict[str, dict] = {}
     for date, dd in series.items():
@@ -127,7 +153,21 @@ def anonymize(series: dict[str, dict], seed: int = 20261011) -> dict[str, dict]:
 
         for k in _OFFSET_KEYS:
             if isinstance(nd.get(k), (int, float)):
-                nd[k] = round(nd[k] + rnd.uniform(-6, 6), 1)
+                nd[k] = round(nd[k] + _shifted_offset(rnd, 6.0), 1)
+
+        if isinstance(nd.get("sleep_efficiency"), (int, float)):
+            nd["sleep_efficiency"] = round(
+                nd["sleep_efficiency"] + _shifted_offset(rnd, _EFFICIENCY_JITTER, 0.3), 1
+            )
+
+        ws = nd.get("workouts")
+        if isinstance(ws, list):
+            nd["workouts"] = [
+                {**w, **{k: round(w[k] * scale[k], 2)
+                         for k in _NESTED_SCALE_KEYS
+                         if isinstance(w.get(k), (int, float))}}
+                for w in ws
+            ]
 
         sl = nd.get("sleep")
         if isinstance(sl, dict):
