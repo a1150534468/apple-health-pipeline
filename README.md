@@ -175,8 +175,14 @@ healthpipe context --days 14 --out ctx.md # 或写文件
 
 两者按日期合并，**快捷指令的数据优先**。
 
-> ⚠️ `examples/` 里的 demo 是**两个来源合并**的结果：快捷指令从 2026-10-11 才开始产出，之前的 30 天来自第三方 App 的存量导出。
-> **只用快捷指令的话，第一次运行只有 1 条数据。**
+> ⚠️ `examples/` 里的 demo 是**纯合成数据**，由 [`examples/build_demo.py`](examples/build_demo.py) 生成，不含任何真实健康数据。
+> 生成脚本可以直接跑，改改参数就能得到一份自己的演示数据：
+
+```bash
+python examples/build_demo.py   # → examples/demo-data.json + demo-dashboard.html
+```
+
+> **注意：只用快捷指令、第一次运行时只有 1 条数据**，攒几天才会出现趋势。上面的 demo 是 31 天，纯粹为了图表好看。
 
 ### 采集字段
 

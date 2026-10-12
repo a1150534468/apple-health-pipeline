@@ -32,11 +32,16 @@ def build_payload(series: dict[str, dict], meta: dict | None = None) -> dict:
     """把时序数据整理成前端需要的形状。"""
     dates = sorted(series)
     latest = dates[-1] if dates else None
+
+    # 模板要读 sources.days_total，这里兜底，避免渲染出 undefined
+    sources = dict(meta or {})
+    sources.setdefault("days_total", len(dates))
+
     return {
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "generator": "healthpipe",
         "date_range": [dates[0], latest] if dates else [],
-        "sources": meta or {},
+        "sources": sources,
         "baseline": {k: metrics.stat_of(series, k) for k in BASELINE_KEYS},
         "qc_days": {d: dd["qc"] for d, dd in series.items() if dd.get("qc")},
         "latest_date": latest,
