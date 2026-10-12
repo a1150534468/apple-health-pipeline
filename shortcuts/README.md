@@ -6,15 +6,15 @@
 |---|---|
 | `Health Export.shortcut` | 导入到 iPhone 即可使用 |
 
-> ⚠️ **待补**：该文件需要从 iPhone 导出——快捷指令 App → 长按「Health Export」→ 分享 → 存储到文件。
-
 ## 导入
 
-也可以直接用 iCloud 链接导入：
+**方式一（用仓库里的文件）**：把 `Health Export.shortcut` AirDrop 到 iPhone，点击并确认导入。
+
+**方式二（iCloud 链接）**：用 iPhone 打开——
 
 `https://www.icloud.com/shortcuts/f7ad8c2d7baa42f88d08a30cf1c7e391`
 
-**必须用 Safari 打开**，微信 / QQ 的内置浏览器打不开。
+两种方式都**必须用 Safari 打开**，微信 / QQ 的内置浏览器打不开。
 
 ## 必做设置
 
