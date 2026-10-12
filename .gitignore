@@ -1,0 +1,27 @@
+# ---- 个人健康数据（严禁提交；只匹配根目录，别误伤 src/healthpipe/data/）----
+/data/
+/output/
+health_*.txt
+health-*.json
+*.shortcut.txt
+
+# ---- 本地配置（含个人路径）----
+config.toml
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---- 编辑器 / 系统 ----
+.DS_Store
+.idea/
+.vscode/
+*.log

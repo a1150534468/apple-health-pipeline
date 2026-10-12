@@ -1,0 +1,22 @@
+{
+  "date": "2026-01-15",
+  "steps": 8123,
+  "distance_km": 6.4,
+  "active_energy_kcal": 412.5,
+  "exercise_min": 35,
+  "basal_energy_kcal": 1520.3,
+  "hrv_ms": 48.6,
+  "resting_hr": 58,
+  "heart_rate": [
+    {"t":"01:12","v":54 "},
+    {"t":"01:37","v":57 "},
+    {"t":"08:05","v":88 "},
+    {"t":"12:40","v":96 "}
+  ］,
+  "sleep": [
+    {"start":"23:20","end":"01:05","type":"Core"},
+    {"start":"01:05","end":"01:48","type":"Deep"},
+    {"start":"01:48","end":"03:30","type":"REM"},
+    {"start":"03:30","end":"07:00","type":"Core"},
+  ]
+}

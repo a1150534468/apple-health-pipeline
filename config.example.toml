@@ -1,0 +1,31 @@
+# healthpipe 配置示例
+#
+# 用法：复制成 config.toml 放在项目根目录，按实际情况修改。
+# config.toml 已被 .gitignore 排除，不会提交。
+
+[paths]
+# iPhone 快捷指令导出目录（必填）
+# 例：iCloud Drive/HealthData  →  ~/Library/Mobile Documents/com~apple~CloudDocs/HealthData
+shortcut_dir = "~/Library/Mobile Documents/com~apple~CloudDocs/HealthData"
+
+# 第三方 App 的导出目录（可选；没有就留空字符串）
+# 例：HealthExport 容器 → ~/Library/Mobile Documents/iCloud~HealthExport/Documents/Health
+healthexport_dir = ""
+
+# 产物输出目录（series.json / dashboard.html / 汇总 Markdown）
+output_dir = "./output"
+
+[dashboard]
+title = "健康数据仪表盘"
+subtitle = "Apple Watch · 本地数据管道"
+
+[report]
+# Markdown 汇总文件名
+filename = "健康记录.md"
+
+[privacy]
+# true = 生成公开版本时按比例缩放真实值（保留趋势形态，抹掉绝对值）
+# 提交 demo、发博客前请置为 true
+anonymize = false
+# 缩放基准（内部推导，一般不用改）
+anonymize_seed = 20261011

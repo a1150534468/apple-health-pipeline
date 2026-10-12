@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>健康数据仪表盘</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f6f8;color:#1c1f23;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 24px 64px}
+header h1{font-size:22px;font-weight:600;margin:0 0 6px;letter-spacing:-.3px}
+header .meta{font-size:12.5px;color:#71767e;line-height:1.7}
+header .meta b{color:#4b5158;font-weight:500}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin:24px 0 20px}
+.kpi{background:#fff;border:1px solid #e8eaee;border-radius:12px;padding:14px 15px}
+.kpi-label{font-size:12px;color:#71767e;display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.kpi-value{font-size:25px;font-weight:600;margin-top:8px;letter-spacing:-.6px;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi-unit{font-size:12.5px;font-weight:400;color:#71767e;margin-left:3px}
+.kpi-sub{font-size:11.5px;color:#a0a6ae;margin-top:7px;line-height:1.5}
+.kpi-sub .up{color:#2f7d4f}
+.kpi-sub .down{color:#c0392b}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:#fff;border:1px solid #e8eaee;border-radius:12px;padding:16px 16px 6px}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:12px}
+.card-head h2{font-size:14px;font-weight:600;margin:0;letter-spacing:-.1px}
+.hint{font-size:11.5px;color:#a0a6ae;text-align:right;line-height:1.5}
+.chart{height:268px}
+.chart.sm{height:224px}
+.full{grid-column:1/-1}
+.qc{background:#fff;border:1px solid #e8eaee;border-radius:12px;padding:14px 16px;margin-top:16px}
+.qc h2{font-size:13.5px;font-weight:600;margin:0 0 10px}
+.qc ul{margin:0;padding-left:18px;font-size:12.5px;color:#5f656e;line-height:1.9}
+.qc code{background:#f2f3f5;border-radius:4px;padding:1px 5px;font-size:11.5px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.qc .ok{color:#2f7d4f}
+footer{margin-top:28px;font-size:11.5px;color:#a0a6ae;line-height:1.9;border-top:1px solid #e8eaee;padding-top:16px}
+@media(max-width:880px){.grid{grid-template-columns:1fr}.chart{height:240px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>健康数据仪表盘</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="grid">
+    <div class="card">
+      <div class="card-head"><h2>睡眠结构</h2><span class="hint">每日各分期时长 · 堆叠</span></div>
+      <div class="chart" id="c-sleep"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>每日步数</h2><span class="hint" id="hint-steps"></span></div>
+      <div class="chart" id="c-steps"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>心率趋势</h2><span class="hint">日均 / 日最高 / 静息</span></div>
+      <div class="chart" id="c-hr"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>活动消耗</h2><span class="hint">主动运动产生的热量</span></div>
+      <div class="chart" id="c-energy"></div>
+    </div>
+    <div class="card full">
+      <div class="card-head"><h2>今日心率曲线</h2><span class="hint" id="hint-hrtoday"></span></div>
+      <div class="chart sm" id="c-hr-today"></div>
+    </div>
+    <div class="card full">
+      <div class="card-head"><h2>今日睡眠分期时间轴</h2><span class="hint" id="hint-sleeptoday"></span></div>
+      <div class="chart sm" id="c-sleep-today"></div>
+    </div>
+  </section>
+
+  <section class="qc" id="qc"></section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>/*__ECHARTS__*/</script>
+<script>
+const DATA = /*__DATA__*/null;
+</script>
+<script>
+(function () {
+  if (!window.echarts) {
+    document.getElementById('kpis').innerHTML =
+      '<div class="kpi"><div class="kpi-label">图表库未加载</div>' +
+      '<div class="kpi-sub">echarts.min.js 缺失，请重新运行 build_dashboard.py</div></div>';
+    return;
+  }
+
+  const S = DATA.series, DATES = Object.keys(S);
+  const isNum = v => typeof v === 'number' && isFinite(v);
+  const L = DATA.latest || {}, B = DATA.baseline || {};
+  const short = d => d.slice(5).replace('-', '/');
+  const FONT = '-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif';
+
+  const COL = {
+    deep: '#4338CA', core: '#818CF8', rem: '#22D3EE', awake: '#FBBF24',
+    steps: '#3B82F6', hr: '#EF4444', hrMax: '#FCA5A5', hrRest: '#F59E0B',
+    energy: '#F97316', sleep: '#4338CA', exercise: '#10B981', hrv: '#8B5CF6'
+  };
+  const hFmt = m => Math.floor(m / 60) + ':' + String(Math.round(m % 60)).padStart(2, '0');
+  const hDur = m => (m < 60 ? Math.round(m) + ' 分钟' : Math.floor(m / 60) + ' 小时 ' + Math.round(m % 60) + ' 分');
+
+  const baseTip = {
+    backgroundColor: 'rgba(255,255,255,.97)', borderColor: '#e2e5e9', borderWidth: 1,
+    textStyle: { color: '#1c1f23', fontSize: 12, fontFamily: FONT },
+    extraCssText: 'box-shadow:0 4px 16px rgba(0,0,0,.08);border-radius:8px;padding:8px 10px'
+  };
+  const grid = { left: 46, right: 18, top: 26, bottom: 30 };
+  const axisCommon = {
+    axisLine: { lineStyle: { color: '#e2e5e9' } },
+    axisTick: { show: false },
+    axisLabel: { color: '#9aa0a8', fontSize: 11, fontFamily: FONT }
+  };
+  const cats = DATES.map(short);
+
+  const charts = [];
+  function make(id, option) {
+    const el = document.getElementById(id);
+    const c = echarts.init(el, null, { renderer: 'canvas' });
+    c.setOption(option);
+    charts.push(c);
+    return c;
+  }
+  window.addEventListener('resize', () => charts.forEach(c => c.resize()));
+
+  /* ---------------- KPI 卡片 ---------------- */
+  const kpiDefs = [
+    { label: '睡眠时长', dot: COL.deep, key: 'sleep_asleep_h', unit: 'h', dec: 2, base: 'sleep_asleep_h', baseDec: 2 },
+    { label: 'HRV (SDNN)', dot: COL.hrv, key: 'hrv_ms', unit: 'ms', dec: 1, note: '参考区间：≥35 ms 属正常（24 岁男性）' },
+    { label: '静息心率', dot: COL.hrRest, key: 'hr_resting', unit: 'bpm', dec: 0, base: 'hr_resting', baseDec: 0 },
+    { label: '步数', dot: COL.steps, key: 'steps', unit: '', dec: 0, base: 'steps', baseDec: 0, partial: true },
+    { label: '活动消耗', dot: COL.energy, key: 'active_kcal', unit: 'kcal', dec: 0, base: 'active_kcal', baseDec: 0, partial: true },
+    { label: '运动时间', dot: COL.exercise, key: 'exercise_min', unit: 'min', dec: 0, partial: true }
+  ];
+  const capturedAt = L.captured_at || '';
+
+  document.getElementById('kpis').innerHTML = kpiDefs.map(k => {
+    const v = L[k.key];
+    const val = isNum(v) ? v.toFixed(k.dec) : '—';
+    const sub = [];
+    const b = k.base ? B[k.base] : null;
+    if (b && isNum(b.mean) && b.n >= 3) {
+      const delta = v - b.mean;
+      const cls = delta > 0 ? 'up' : (delta < 0 ? 'down' : '');
+      const sign = delta > 0 ? '+' : '';
+      sub.push('31 天均值 ' + b.mean.toFixed(k.baseDec) +
+        ' · <span class="' + cls + '">' + sign + delta.toFixed(k.baseDec) + '</span>');
+    }
+    if (k.note) sub.push(k.note);
+    if (k.partial && capturedAt) sub.push('截至 ' + capturedAt + '，未足全天');
+    return '<div class="kpi">' +
+      '<div class="kpi-label"><span class="dot" style="background:' + k.dot + '"></span>' + k.label + '</div>' +
+      '<div class="kpi-value">' + val + '<span class="kpi-unit">' + k.unit + '</span></div>' +
+      (sub.length ? '<div class="kpi-sub">' + sub.join('<br>') + '</div>' : '') +
+      '</div>';
+  }).join('');
+
+  /* ---------------- 头部信息 ---------------- */
+  document.getElementById('meta').innerHTML =
+    '数据源：Apple Watch → iPhone 快捷指令（每日 22:00）→ iCloud → Mac 解析<br>' +
+    '区间 <b>' + DATA.date_range[0] + ' → ' + DATA.date_range[1] + '</b>（' +
+    DATA.sources.days_total + ' 天） · 生成于 <b>' + DATA.generated_at + '</b>';
+
+  /* ---------------- 1. 睡眠结构（堆叠） ---------------- */
+  const sleepKeys = [['deep', '深睡'], ['core', '核心'], ['rem', 'REM'], ['awake', '清醒']];
+  make('c-sleep', {
+    tooltip: Object.assign({ trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: p => {
+        const rows = p.filter(x => isNum(x.value) && x.value > 0)
+          .map(x => x.marker + x.seriesName + '：' + x.value + ' h');
+        return '<b>' + p[0].axisValue + '</b><br>' + (rows.length ? rows.join('<br>') : '无数据');
+      } }, baseTip),
+    legend: { data: sleepKeys.map(k => k[1]), top: 0, textStyle: { fontSize: 11, color: '#71767e', fontFamily: FONT }, itemWidth: 10, itemHeight: 10 },
+    grid: Object.assign({}, grid, { top: 30 }),
+    xAxis: Object.assign({ type: 'category', data: cats, axisLabel: Object.assign({}, axisCommon.axisLabel, { interval: 2 }) }, axisCommon),
+    yAxis: Object.assign({ type: 'value', name: '小时', nameTextStyle: { color: '#b8bdc4', fontSize: 11, fontFamily: FONT },
+      max: v => Math.max(8, Math.ceil(v.max / 2) * 2),
+      splitLine: { lineStyle: { color: '#f0f1f3' } },
+      axisLabel: axisCommon.axisLabel }, { axisLine: { show: false }, axisTick: { show: false } }),
+    series: sleepKeys.map(([k, name]) => ({
+      name: name, type: 'bar', stack: 'sleep', barMaxWidth: 16,
+      itemStyle: { color: COL[k] },
+      data: DATES.map(d => { const s = S[d].sleep; return s && isNum(s[k]) ? +(s[k] / 60).toFixed(2) : null; })
+    }))
+  });
+
+  /* ---------------- 2. 步数 ---------------- */
+  const stepsMean = B.steps && B.steps.mean;
+  document.getElementById('hint-steps').textContent = isNum(stepsMean) ? '虚线 = 31 天均值 ' + stepsMean : '';
+  make('c-steps', {
+    tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' },
+      formatter: p => '<b>' + p[0].axisValue + '</b><br>' + p[0].marker + '步数：' +
+        (isNum(p[0].value) ? p[0].value.toLocaleString() + ' 步' : '无数据') }, baseTip),
+    grid: Object.assign({}, grid, { top: 20 }),
+    xAxis: Object.assign({ type: 'category', data: cats, axisLabel: Object.assign({}, axisCommon.axisLabel, { interval: 2 }) }, axisCommon),
+    yAxis: Object.assign({ type: 'value', splitLine: { lineStyle: { color: '#f0f1f3' } } }, { axisLine: { show: false }, axisTick: { show: false }, axisLabel: axisCommon.axisLabel }),
+    series: [{
+      type: 'bar', barMaxWidth: 16,
+      itemStyle: { color: p => (S[DATES[p.dataIndex]] || {}).qc && S[DATES[p.dataIndex]].qc.length ? '#FBBF24' : COL.steps, borderRadius: [3, 3, 0, 0] },
+      data: DATES.map(d => isNum(S[d].steps) ? S[d].steps : null),
+      markLine: isNum(stepsMean) ? {
+        silent: true, symbol: 'none',
+        lineStyle: { color: '#b8bdc4', type: 'dashed', width: 1.2 },
+        label: { formatter: '均值 {c}', color: '#9aa0a8', fontSize: 11, fontFamily: FONT, position: 'insideEndTop' },
+        data: [{ yAxis: stepsMean }]
+      } : undefined
+    }]
+  });
+
+  /* ---------------- 3. 心率趋势 ---------------- */
+  make('c-hr', {
+    tooltip: Object.assign({ trigger: 'axis',
+      formatter: p => '<b>' + p[0].axisValue + '</b><br>' + p.filter(x => isNum(x.value))
+        .map(x => x.marker + x.seriesName + '：' + x.value + ' bpm').join('<br>') }, baseTip),
+    legend: { data: ['日均', '日最高', '静息'], top: 0, textStyle: { fontSize: 11, color: '#71767e', fontFamily: FONT }, itemWidth: 12, itemHeight: 8 },
+    grid: Object.assign({}, grid, { top: 30 }),
+    xAxis: Object.assign({ type: 'category', data: cats, boundaryGap: false, axisLabel: Object.assign({}, axisCommon.axisLabel, { interval: 2 }) }, axisCommon),
+    yAxis: Object.assign({ type: 'value', name: 'bpm', nameTextStyle: { color: '#b8bdc4', fontSize: 11, fontFamily: FONT },
+      splitLine: { lineStyle: { color: '#f0f1f3' } } }, { axisLine: { show: false }, axisTick: { show: false }, axisLabel: axisCommon.axisLabel }),
+    series: [
+      { name: '日最高', type: 'line', smooth: true, symbol: 'none',
+        lineStyle: { color: COL.hrMax, width: 1.4, type: 'dashed' },
+        data: DATES.map(d => isNum(S[d].hr_max) ? S[d].hr_max : null) },
+      { name: '日均', type: 'line', smooth: true, symbol: 'circle', symbolSize: 4, showSymbol: false,
+        lineStyle: { color: COL.hr, width: 1.8 }, itemStyle: { color: COL.hr },
+        data: DATES.map(d => isNum(S[d].hr_avg) ? S[d].hr_avg : null) },
+      { name: '静息', type: 'line', smooth: true, symbol: 'none',
+        lineStyle: { color: COL.hrRest, width: 1.4, type: 'dotted' },
+        data: DATES.map(d => isNum(S[d].hr_resting) ? S[d].hr_resting : null) }
+    ]
+  });
+
+  /* ---------------- 4. 活动消耗 ---------------- */
+  make('c-energy', {
+    tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' },
+      formatter: p => '<b>' + p[0].axisValue + '</b><br>' + p[0].marker + '活动消耗：' +
+        (isNum(p[0].value) ? p[0].value + ' kcal' : '无数据') }, baseTip),
+    grid: Object.assign({}, grid, { top: 20 }),
+    xAxis: Object.assign({ type: 'category', data: cats, axisLabel: Object.assign({}, axisCommon.axisLabel, { interval: 2 }) }, axisCommon),
+    yAxis: Object.assign({ type: 'value', splitLine: { lineStyle: { color: '#f0f1f3' } } }, { axisLine: { show: false }, axisTick: { show: false }, axisLabel: axisCommon.axisLabel }),
+    series: [{
+      type: 'bar', barMaxWidth: 16, itemStyle: { color: COL.energy, borderRadius: [3, 3, 0, 0] },
+      data: DATES.map(d => isNum(S[d].active_kcal) ? Math.round(S[d].active_kcal) : null)
+    }]
+  });
+
+  /* ---------------- 5. 今日心率 24h ---------------- */
+  const pts = (L.hr_points || []).map(([t, v]) => {
+    const a = t.split(':');
+    return [+a[0] * 60 + +a[1], v];
+  }).sort((x, y) => x[0] - y[0]);
+
+  if (pts.length) {
+    const vals = pts.map(p => p[1]);
+    const minIdx = vals.indexOf(Math.min.apply(null, vals));
+    const maxIdx = vals.indexOf(Math.max.apply(null, vals));
+    document.getElementById('hint-hrtoday').innerHTML =
+      pts.length + ' 个采样点 · 最低 ' + Math.min.apply(null, vals) + ' / 最高 ' + Math.max.apply(null, vals) + ' bpm';
+
+    make('c-hr-today', {
+      tooltip: Object.assign({ trigger: 'axis',
+        formatter: p => '<b>' + hFmt(p[0].value[0]) + '</b>　' + p[0].value[1] + ' bpm' }, baseTip),
+      grid: { left: 46, right: 24, top: 24, bottom: 30 },
+      xAxis: { type: 'value', min: 0, max: 1440, interval: 180,
+        axisLine: { lineStyle: { color: '#e2e5e9' } }, axisTick: { show: false },
+        splitLine: { lineStyle: { color: '#f5f6f8' } },
+        axisLabel: Object.assign({}, axisCommon.axisLabel, { formatter: hFmt }) },
+      yAxis: { type: 'value', name: 'bpm', min: v => Math.floor(v.min - 5), nameTextStyle: { color: '#b8bdc4', fontSize: 11, fontFamily: FONT },
+        splitLine: { lineStyle: { color: '#f0f1f3' } }, axisLine: { show: false }, axisTick: { show: false }, axisLabel: axisCommon.axisLabel },
+      series: [{
+        type: 'line', smooth: true, symbol: 'none', sampling: 'lttb',
+        lineStyle: { color: COL.hr, width: 1.6 },
+        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(239,68,68,.18)' }, { offset: 1, color: 'rgba(239,68,68,0)' }]) },
+        data: pts,
+        markPoint: {
+          symbolSize: 34, label: { fontSize: 10, fontFamily: FONT, color: '#fff' },
+          data: [
+            { coord: pts[minIdx], value: '最低', itemStyle: { color: '#94a3b8' } },
+            { coord: pts[maxIdx], value: '最高', itemStyle: { color: COL.hr } }
+          ]
+        }
+      }]
+    });
+  }
+
+  /* ---------------- 6. 今日睡眠分期时间轴 ---------------- */
+  const segs = L.sleep_segments || [];
+  if (segs.length) {
+    const order = ['Deep', 'Core', 'REM', 'Awake'];
+    const nameOf = { Deep: '深睡', Core: '核心', REM: 'REM', Awake: '清醒' };
+    const colOf = { Deep: COL.deep, Core: COL.core, REM: COL.rem, Awake: COL.awake };
+    let total = 0, maxEnd = 0;
+    const rows = [];
+    segs.forEach(s => {
+      let a = +s.start.split(':')[0] * 60 + +s.start.split(':')[1];
+      let b = +s.end.split(':')[0] * 60 + +s.end.split(':')[1];
+      if (b <= a) b += 1440;
+      const idx = order.indexOf(s.type);
+      if (idx < 0) return;
+      total += (b - a);
+      maxEnd = Math.max(maxEnd, b);
+      rows.push([a, b, idx, s.type, b - a]);
+    });
+    const xMax = Math.ceil(maxEnd / 60) * 60;
+
+    document.getElementById('hint-sleeptoday').innerHTML =
+      hFmt(rows[0][0]) + ' → ' + hFmt(rows[rows.length - 1][1]) + ' · 共 ' + rows.length + ' 段';
+
+    make('c-sleep-today', {
+      tooltip: Object.assign({ formatter: p => {
+        const d = p.data;
+        return '<b>' + d[3] + '</b><br>' + hFmt(d[0]) + ' → ' + hFmt(d[1]) + '（' + hDur(d[4]) + '）';
+      } }, baseTip),
+      grid: { left: 56, right: 24, top: 16, bottom: 30 },
+      xAxis: { type: 'value', min: 0, max: xMax, interval: 120,
+        axisLine: { lineStyle: { color: '#e2e5e9' } }, axisTick: { show: false },
+        splitLine: { lineStyle: { color: '#f5f6f8' } },
+        axisLabel: Object.assign({}, axisCommon.axisLabel, { formatter: hFmt }) },
+      yAxis: { type: 'category', data: order.map(t => nameOf[t]), inverse: true,
+        axisLine: { show: false }, axisTick: { show: false },
+        axisLabel: { color: '#71767e', fontSize: 11.5, fontFamily: FONT } },
+      series: [{
+        type: 'custom', encode: { x: [0, 1], y: 2 },
+        data: rows,
+        renderItem: function (params, api) {
+          const cat = api.value(2);
+          const p1 = api.coord([api.value(0), cat]);
+          const p2 = api.coord([api.value(1), cat]);
+          const h = Math.max(10, Math.min(16, api.size([0, 1])[1] * 0.34));
+          const rect = echarts.graphic.clipRectByRect(
+            { x: p1[0], y: p1[1] - h / 2, width: Math.max(1, p2[0] - p1[0]), height: h },
+            { x: params.coordSys.x, y: params.coordSys.y, width: params.coordSys.width, height: params.coordSys.height }
+          );
+          return rect && { type: 'rect', shape: rect, style: { fill: colOf[api.value(3)], rx: 2, ry: 2 } };
+        }
+      }]
+    });
+  }
+
+  /* ---------------- 数据质量 ---------------- */
+  const qcDays = DATA.qc_days || {};
+  const qcKeys = Object.keys(qcDays);
+  document.getElementById('qc').innerHTML = '<h2>数据质量守门</h2>' + (qcKeys.length
+    ? '<ul>' + qcKeys.map(d => '<li><code>' + d + '</code>　' + qcDays[d].join('；') + '　<span style="color:#b8bdc4">（保留原始值，仅标注）</span></li>').join('') + '</ul>'
+    : '<div class="ok" style="font-size:12.5px">31 天内未发现异常样本。</div>');
+
+  document.getElementById('foot').innerHTML =
+    '本页为<b>单文件静态页面</b>，数据已内联，可直接离线打开或分享。' +
+    'HRV / 静息心率取自 HealthKit 原生值（SDNN / RestingHeartRate），' +
+    '非从分钟级心率反推的估算值。睡眠分期来自 Apple Watch 睡眠追踪。';
+})();
+</script>
+</body>
+</html>

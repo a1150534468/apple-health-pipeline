@@ -1,0 +1,572 @@
+{
+ "2026-09-11": {
+  "steps": 1717.98,
+  "active_kcal": 302.57,
+  "hr_avg": 73.8,
+  "hr_max": 124,
+  "sleep": {
+   "deep": 103,
+   "core": 361,
+   "rem": 192,
+   "awake": 11
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 10.65,
+  "sleep_inbed_h": 10.05,
+  "sleep_efficiency": 98.3,
+  "qc": []
+ },
+ "2026-09-12": {
+  "steps": 3166.21,
+  "active_kcal": 311.22,
+  "hr_avg": 66.0,
+  "hr_max": 125,
+  "hr_resting": 64.2,
+  "sleep": {
+   "deep": 44,
+   "core": 531,
+   "rem": 205,
+   "awake": 33
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 12.37,
+  "sleep_inbed_h": 12.33,
+  "sleep_efficiency": 95.9,
+  "qc": []
+ },
+ "2026-09-13": {
+  "steps": 4156.48,
+  "active_kcal": 366.93,
+  "hr_avg": 90.2,
+  "hr_max": 155,
+  "hr_resting": 64.1,
+  "_source": "healthexport",
+  "qc": []
+ },
+ "2026-09-14": {
+  "steps": 2123.43,
+  "active_kcal": 329.27,
+  "hr_avg": 73.1,
+  "hr_max": 124,
+  "hr_resting": 67.4,
+  "sleep": {
+   "deep": 65,
+   "core": 364,
+   "rem": 138,
+   "awake": 67
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 9.04,
+  "sleep_inbed_h": 10.22,
+  "sleep_efficiency": 89.5,
+  "qc": []
+ },
+ "2026-09-15": {
+  "steps": 2431.3,
+  "active_kcal": 372.37,
+  "hr_avg": 74.4,
+  "hr_max": 132,
+  "hr_resting": 68.8,
+  "sleep": {
+   "deep": 111,
+   "core": 472,
+   "rem": 162,
+   "awake": 19
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 12.81,
+  "sleep_inbed_h": 11.55,
+  "sleep_efficiency": 97.5,
+  "qc": []
+ },
+ "2026-09-16": {
+  "steps": 3024.33,
+  "active_kcal": 258.9,
+  "hr_avg": 74.3,
+  "hr_max": 125,
+  "hr_resting": 64.6,
+  "sleep": {
+   "deep": 44,
+   "core": 445,
+   "rem": 130,
+   "awake": 65
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 10.71,
+  "sleep_inbed_h": 10.29,
+  "sleep_efficiency": 90.5,
+  "qc": []
+ },
+ "2026-09-17": {
+  "steps": 1562.43,
+  "active_kcal": 246.72,
+  "hr_avg": 67.8,
+  "hr_max": 126,
+  "hr_resting": 61.4,
+  "sleep": {
+   "deep": 54,
+   "core": 424,
+   "rem": 181,
+   "awake": 25
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 11.32,
+  "sleep_inbed_h": 10.33,
+  "sleep_efficiency": 96.3,
+  "qc": []
+ },
+ "2026-09-18": {
+  "steps": 704.77,
+  "active_kcal": 172.78,
+  "hr_avg": 66.7,
+  "hr_max": 121,
+  "hr_resting": 55.5,
+  "sleep": {
+   "deep": 49,
+   "core": 489,
+   "rem": 202,
+   "awake": 32
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 11.85,
+  "sleep_inbed_h": 12.14,
+  "sleep_efficiency": 95.9,
+  "qc": []
+ },
+ "2026-09-19": {
+  "steps": 2145.12,
+  "active_kcal": 251.92,
+  "hr_avg": 69.9,
+  "hr_max": 153,
+  "hr_resting": 62.7,
+  "sleep": {
+   "deep": 129,
+   "core": 531,
+   "rem": 207,
+   "awake": 10
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 14.45,
+  "sleep_inbed_h": 14.18,
+  "sleep_efficiency": 98.9,
+  "qc": []
+ },
+ "2026-09-20": {
+  "steps": 3466.32,
+  "active_kcal": 349.23,
+  "hr_avg": 74.9,
+  "hr_max": 122,
+  "hr_resting": 73.3,
+  "sleep": {
+   "deep": 62,
+   "core": 429,
+   "rem": 140,
+   "awake": 48
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 10.62,
+  "sleep_inbed_h": 10.12,
+  "sleep_efficiency": 93.0,
+  "qc": []
+ },
+ "2026-09-21": {
+  "steps": 2601.54,
+  "active_kcal": 277.95,
+  "hr_avg": 80.8,
+  "hr_max": 168,
+  "hr_resting": 58.1,
+  "sleep": {
+   "deep": 91,
+   "core": 413,
+   "rem": 168,
+   "awake": 14
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 11.5,
+  "sleep_inbed_h": 10.7,
+  "sleep_efficiency": 97.9,
+  "qc": []
+ },
+ "2026-09-22": {
+  "steps": 2383.16,
+  "active_kcal": 283.83,
+  "hr_avg": 70.4,
+  "hr_max": 174,
+  "hr_resting": 61.4,
+  "sleep": {
+   "deep": 40,
+   "core": 442,
+   "rem": 167,
+   "awake": 40
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 11.19,
+  "sleep_inbed_h": 11.04,
+  "sleep_efficiency": 94.2,
+  "qc": []
+ },
+ "2026-09-23": {
+  "steps": 2629.0,
+  "active_kcal": 262.96,
+  "hr_avg": 70.2,
+  "hr_max": 126,
+  "hr_resting": 64.5,
+  "sleep": {
+   "deep": 51,
+   "core": 423,
+   "rem": 124,
+   "awake": 33
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 9.9,
+  "sleep_inbed_h": 9.62,
+  "sleep_efficiency": 94.7,
+  "qc": []
+ },
+ "2026-09-24": {
+  "steps": 8527.56,
+  "active_kcal": 591.26,
+  "hr_avg": 89.0,
+  "hr_max": 138,
+  "hr_resting": 76.1,
+  "sleep": {
+   "deep": 0,
+   "core": 0,
+   "rem": 0,
+   "awake": 8
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": null,
+  "sleep_inbed_h": 0.12,
+  "sleep_efficiency": 0.0,
+  "qc": [
+   "在床不足 1.5h，疑似未佩戴手表"
+  ]
+ },
+ "2026-09-25": {
+  "steps": 4812.93,
+  "active_kcal": 370.9,
+  "hr_avg": 70.7,
+  "hr_max": 126,
+  "hr_resting": 59.1,
+  "sleep": {
+   "deep": 59,
+   "core": 451,
+   "rem": 221,
+   "awake": 19
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 11.7,
+  "sleep_inbed_h": 11.67,
+  "sleep_efficiency": 97.5,
+  "qc": []
+ },
+ "2026-09-26": {
+  "steps": 8012.87,
+  "active_kcal": 486.28,
+  "hr_avg": 74.7,
+  "hr_max": 123,
+  "hr_resting": 62.9,
+  "sleep": {
+   "deep": 43,
+   "core": 462,
+   "rem": 280,
+   "awake": 33
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 13.37,
+  "sleep_inbed_h": 12.34,
+  "sleep_efficiency": 95.9,
+  "qc": []
+ },
+ "2026-09-27": {
+  "steps": 4182.08,
+  "active_kcal": 366.49,
+  "hr_avg": 66.1,
+  "hr_max": 136,
+  "hr_resting": 70.5,
+  "sleep": {
+   "deep": 44,
+   "core": 324,
+   "rem": 149,
+   "awake": 17
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 8.22,
+  "sleep_inbed_h": 8.08,
+  "sleep_efficiency": 96.7,
+  "qc": []
+ },
+ "2026-09-28": {
+  "steps": 1270.58,
+  "active_kcal": 239.12,
+  "hr_avg": 59.7,
+  "hr_max": 95,
+  "hr_resting": 61.2,
+  "sleep": {
+   "deep": 71,
+   "core": 477,
+   "rem": 172,
+   "awake": 32
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 11.79,
+  "sleep_inbed_h": 11.48,
+  "sleep_efficiency": 95.8,
+  "qc": []
+ },
+ "2026-09-29": {
+  "steps": 3981.01,
+  "active_kcal": 347.89,
+  "hr_avg": 66.6,
+  "hr_max": 122,
+  "hr_resting": 65.2,
+  "sleep": {
+   "deep": 56,
+   "core": 415,
+   "rem": 108,
+   "awake": 48
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 10.0,
+  "sleep_inbed_h": 10.13,
+  "sleep_efficiency": 92.4,
+  "qc": []
+ },
+ "2026-09-30": {
+  "steps": 4298.45,
+  "active_kcal": 371.85,
+  "hr_avg": 75.9,
+  "hr_max": 130,
+  "hr_resting": 71.8,
+  "sleep": {
+   "deep": 48,
+   "core": 480,
+   "rem": 125,
+   "awake": 21
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 11.02,
+  "sleep_inbed_h": 10.33,
+  "sleep_efficiency": 96.9,
+  "qc": []
+ },
+ "2026-10-01": {
+  "steps": 7142.35,
+  "active_kcal": 479.2,
+  "hr_avg": 75.2,
+  "hr_max": 119,
+  "hr_resting": 63.5,
+  "sleep": {
+   "deep": 43,
+   "core": 386,
+   "rem": 111,
+   "awake": 19
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 9.08,
+  "sleep_inbed_h": 9.06,
+  "sleep_efficiency": 96.6,
+  "qc": []
+ },
+ "2026-10-02": {
+  "steps": 3972.01,
+  "active_kcal": 632.52,
+  "hr_avg": 81.4,
+  "hr_max": 148,
+  "hr_resting": 68.7,
+  "sleep": {
+   "deep": 79,
+   "core": 494,
+   "rem": 273,
+   "awake": 8
+  },
+  "workouts": [
+   {
+    "calories": 330,
+    "date": "2026-10-02",
+    "duration_min": 183.5,
+    "source": "Z的Apple Watch",
+    "type": "swimming"
+   }
+  ],
+  "_source": "healthexport",
+  "sleep_asleep_h": 14.81,
+  "sleep_inbed_h": 13.89,
+  "sleep_efficiency": 99.1,
+  "qc": []
+ },
+ "2026-10-03": {
+  "steps": 16238.62,
+  "active_kcal": 882.43,
+  "hr_avg": 88.7,
+  "hr_max": 139,
+  "hr_resting": 69.7,
+  "sleep": {
+   "deep": 56,
+   "core": 421,
+   "rem": 108,
+   "awake": 30
+  },
+  "workouts": [
+   {
+    "calories": 33,
+    "date": "2026-10-03",
+    "distance_km": 0.9,
+    "duration_min": 16.9,
+    "source": "Z的Apple Watch",
+    "type": "walking"
+   }
+  ],
+  "_source": "healthexport",
+  "sleep_asleep_h": 9.33,
+  "sleep_inbed_h": 9.47,
+  "sleep_efficiency": 95.1,
+  "qc": [
+   "步数 ≥18000，疑似户外长距离活动日"
+  ]
+ },
+ "2026-10-04": {
+  "steps": 2178.94,
+  "active_kcal": 203.45,
+  "hr_avg": 66.0,
+  "hr_max": 97,
+  "hr_resting": 64.4,
+  "sleep": {
+   "deep": 68,
+   "core": 456,
+   "rem": 176,
+   "awake": 35
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 12.11,
+  "sleep_inbed_h": 11.14,
+  "sleep_efficiency": 95.2,
+  "qc": []
+ },
+ "2026-10-05": {
+  "steps": 5196.57,
+  "active_kcal": 421.51,
+  "hr_avg": 61.1,
+  "hr_max": 101,
+  "hr_resting": 51.1,
+  "sleep": {
+   "deep": 56,
+   "core": 475,
+   "rem": 110,
+   "awake": 19
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 10.32,
+  "sleep_inbed_h": 10.38,
+  "sleep_efficiency": 97.1,
+  "qc": []
+ },
+ "2026-10-06": {
+  "steps": 1056.92,
+  "active_kcal": 159.04,
+  "hr_avg": 62.2,
+  "hr_max": 96,
+  "hr_resting": 56.2,
+  "sleep": {
+   "deep": 64,
+   "core": 540,
+   "rem": 183,
+   "awake": 97
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 12.84,
+  "sleep_inbed_h": 14.18,
+  "sleep_efficiency": 89.0,
+  "qc": []
+ },
+ "2026-10-07": {
+  "steps": 3460.44,
+  "active_kcal": 344.9,
+  "hr_avg": 78.5,
+  "hr_max": 141,
+  "hr_resting": 64.0,
+  "sleep": {
+   "deep": 41,
+   "core": 372,
+   "rem": 148,
+   "awake": 2
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 9.43,
+  "sleep_inbed_h": 9.05,
+  "sleep_efficiency": 99.7,
+  "qc": []
+ },
+ "2026-10-08": {
+  "steps": 834.08,
+  "active_kcal": 293.69,
+  "hr_avg": 71.3,
+  "hr_max": 121,
+  "hr_resting": 57.3,
+  "_source": "healthexport",
+  "qc": []
+ },
+ "2026-10-09": {
+  "steps": 907.86,
+  "active_kcal": 335.38,
+  "hr_avg": 69.3,
+  "hr_max": 112,
+  "hr_resting": 62.0,
+  "sleep": {
+   "deep": 38,
+   "core": 411,
+   "rem": 148,
+   "awake": 59
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 9.69,
+  "sleep_inbed_h": 10.63,
+  "sleep_efficiency": 91.0,
+  "qc": []
+ },
+ "2026-10-10": {
+  "steps": 2879.67,
+  "active_kcal": 297.87,
+  "hr_avg": 71.9,
+  "hr_max": 107,
+  "hr_resting": 58.8,
+  "sleep": {
+   "deep": 43,
+   "core": 459,
+   "rem": 175,
+   "awake": 16
+  },
+  "_source": "healthexport",
+  "sleep_asleep_h": 11.67,
+  "sleep_inbed_h": 10.81,
+  "sleep_efficiency": 97.7,
+  "qc": []
+ },
+ "2026-10-11": {
+  "steps": 621.59,
+  "active_kcal": 127.4,
+  "hr_avg": 77.6,
+  "hr_max": 103.0,
+  "hr_resting": 71.2,
+  "sleep": {
+   "deep": 48,
+   "core": 696,
+   "rem": 175,
+   "awake": 89,
+   "bed_start": "01:17",
+   "bed_end": "11:51"
+  },
+  "_source": "shortcut",
+  "distance_km": 0.44,
+  "basal_kcal": 1435.35,
+  "exercise_min": 5.61,
+  "hrv_ms": 22.22,
+  "hr_min": 53.0,
+  "captured_at": "18:02",
+  "sleep_asleep_h": 15.56,
+  "sleep_inbed_h": 15.86,
+  "sleep_efficiency": 91.2,
+  "qc": []
+ }
+}
