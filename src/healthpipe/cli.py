@@ -3,6 +3,8 @@
     healthpipe sync        解析导出文件，合并成统一时序（output/series.json）
     healthpipe dashboard   生成单文件 HTML 仪表盘
     healthpipe report      生成 Markdown 汇总表
+    healthpipe context     输出给 AI 用的健康数据上下文（可直接粘给模型）
+    healthpipe mcp         启动 MCP server，供 AI 客户端直接挂载
     healthpipe doctor      体检数据质量与解析情况
 """
 
@@ -13,7 +15,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import __version__, dashboard, metrics, report, sources
+from . import __version__, context, dashboard, metrics, report, sources
 from .config import Config
 
 DEFAULT_CONFIG = "config.toml"
@@ -136,6 +138,31 @@ def cmd_doctor(cfg: Config, args) -> int:
     return 0
 
 
+def cmd_context(cfg: Config, args) -> int:
+    series, _e, _s = _load_series(cfg)
+    if not series:
+        print("⚠️ 没有找到任何数据，请检查 config.toml 里的路径。", file=sys.stderr)
+        return 2
+
+    text = context.render_context(_apply_privacy(series, cfg), days=args.days)
+    if args.out:
+        out = Path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, encoding="utf-8")
+        print(f"✅ 上下文 → {out}")
+    else:
+        print(text)
+    return 0
+
+
+def cmd_mcp(cfg: Config, args) -> int:
+    from . import mcp_server
+
+    print("healthpipe MCP server 已启动（stdio）。客户端配置见 README「AI 集成」一节。",
+          file=sys.stderr)
+    return mcp_server.serve(cfg)
+
+
 # --------------------------------------------------------------------------- 入口
 
 
@@ -149,6 +176,10 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("dashboard", help="生成单文件 HTML 仪表盘")
     rp = sub.add_parser("report", help="生成 Markdown 汇总表")
     rp.add_argument("--days", type=int, default=None, help="只输出最近 N 天")
+    cp = sub.add_parser("context", help="输出给 AI 用的健康数据上下文")
+    cp.add_argument("--days", type=int, default=7, help="回溯天数（默认 7）")
+    cp.add_argument("--out", default=None, help="写入文件；不传则打印到 stdout")
+    sub.add_parser("mcp", help="启动 MCP server（stdio），供 AI 客户端挂载")
     sub.add_parser("doctor", help="体检数据质量与解析情况")
     return p
 
@@ -168,6 +199,8 @@ def main(argv: list[str] | None = None) -> int:
         "dashboard": cmd_dashboard,
         "report": cmd_report,
         "doctor": cmd_doctor,
+        "context": cmd_context,
+        "mcp": cmd_mcp,
     }
     return handlers[args.command](cfg, args)
 

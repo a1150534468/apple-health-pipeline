@@ -37,6 +37,15 @@ def summarize_sleep(segments: list[dict]) -> dict:
     }
 
 
+def deep_pct(dd: dict):
+    """深睡占实睡（deep+core+rem）的比例，%。"""
+    sl = dd.get("sleep") or {}
+    total = sum(sl.get(k) or 0 for k in ("deep", "core", "rem"))
+    if total and sl.get("deep") is not None:
+        return round(sl["deep"] / total * 100, 1)
+    return None
+
+
 def qc_flags(dd: dict) -> list[str]:
     """数据质量守门：标记不可信 / 需人工判读的日子。只标注，不删数据。"""
     flags: list[str] = []
