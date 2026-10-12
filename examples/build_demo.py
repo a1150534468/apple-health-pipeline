@@ -75,6 +75,33 @@ def _hr_points(rnd: random.Random) -> list[list]:
     return pts
 
 
+def _workouts(rnd: random.Random, day_index: int, steps: float) -> list[dict]:
+    """合成当天的运动记录。约 45% 的日子有运动，周末更容易有。"""
+    if rnd.random() > 0.45:
+        return []
+    kind, base_min, per_min_km, kcal_per_min = rnd.choice([
+        ("跑步", 32, 0.165, 10.5),
+        ("步行", 45, 0.075, 4.2),
+        ("骑行", 55, 0.33, 7.6),
+        ("力量训练", 40, 0.0, 6.4),
+        ("游泳", 35, 0.028, 9.1),
+    ])
+    dur = max(12.0, round(base_min + rnd.gauss(0, 9), 1))
+    start_min = rnd.choice([7 * 60 + rnd.randint(0, 50), 12 * 60 + rnd.randint(0, 40),
+                            18 * 60 + rnd.randint(0, 50)])
+    end_min = start_min + int(round(dur))
+    return [{
+        "type": kind,
+        "start": _hhmm(start_min),
+        "end": _hhmm(end_min),
+        "duration_min": dur,
+        "calories": round(dur * kcal_per_min * rnd.uniform(0.9, 1.1), 1),
+        "distance_km": round(dur * per_min_km * rnd.uniform(0.92, 1.08), 2) or None,
+        "avg_hr": round(rnd.gauss(138, 12), 1),
+        "source": "demo",
+    }]
+
+
 def build_demo() -> dict[str, dict]:
     rnd = random.Random(SEED)
     start = END - timedelta(days=DAYS - 1)
@@ -124,6 +151,10 @@ def build_demo() -> dict[str, dict]:
         segs = _sleep_stages(rnd, dd["sleep"]["deep"], dd["sleep"]["core"],
                              dd["sleep"]["rem"], dd["sleep"]["awake"])
         dd["sleep_segments"] = segs
+
+        ws = _workouts(rnd, i, steps)
+        if ws:
+            dd["workouts"] = ws
 
         # 制造一天步数异常，展示离群标记
         if i == DAYS - 6:

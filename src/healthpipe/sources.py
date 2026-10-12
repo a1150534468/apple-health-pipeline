@@ -15,7 +15,35 @@ import json
 from pathlib import Path
 
 from . import repair
-from .metrics import hm, summarize_sleep
+from .metrics import as_num, hm, summarize_sleep
+
+
+def _norm_workouts(raw, default_source: str) -> list[dict]:
+    """把不同来源的运动记录归一成同一个形状。
+
+    统一后的字段：
+      ``type``（运动类型，如 running / swimming / 跑步）、``start``/``end``（HH:MM）、
+      ``duration_min``、``calories``、``distance_km``、``avg_hr``、``source``
+    """
+    out: list[dict] = []
+    for w in raw or []:
+        if not isinstance(w, dict):
+            continue
+        item = {
+            "type": str(w.get("type") or w.get("workout_type") or "").strip(),
+            "start": str(w.get("start") or "").strip(),
+            "end": str(w.get("end") or "").strip(),
+            "duration_min": as_num(w.get("duration_min")),
+            "calories": as_num(w.get("calories")),
+            "distance_km": as_num(w.get("distance_km")),
+            "avg_hr": as_num(w.get("avg_hr")),
+            "source": str(w.get("source") or default_source).strip(),
+        }
+        # 一个字段都没有的条目直接丢掉，别在数据里留空壳
+        if any(item[k] not in (None, "") for k in
+               ("type", "duration_min", "calories", "distance_km")):
+            out.append(item)
+    return out
 
 
 def load_healthexport(dirpath: str | Path | None) -> dict[str, dict]:
@@ -53,7 +81,9 @@ def load_healthexport(dirpath: str | Path | None) -> dict[str, dict]:
                 "awake": st.get("awake_min"),
             }
         for it in metrics.get("workouts") or []:
-            days.setdefault(it["date"], {}).setdefault("workouts", []).append(it)
+            ws = _norm_workouts([it], "healthexport")
+            if ws:
+                days.setdefault(it["date"], {}).setdefault("workouts", []).extend(ws)
 
     for dd in days.values():
         dd.setdefault("_source", "healthexport")
@@ -110,6 +140,10 @@ def load_shortcut(dirpath: str | Path) -> dict[str, dict]:
                 }
                 for s in segs
             ]
+
+        ws = _norm_workouts(obj.get("workouts"), "shortcut")
+        if ws:
+            dd["workouts"] = ws
 
     return days
 

@@ -26,8 +26,9 @@ macOS 读不到 Apple 健康数据库，所以必须走「手机 → 文件 → 
 ## 特性
 
 - **容错解析** —— 自动修复快捷指令导出的三类固定语法错误，坏文件不会中断整条链路
-- **AI 上下文** —— `healthpipe context` 直接产出模型能读的 Markdown 摘要（当日明细 + 趋势 + 数据质量）
+- **AI 上下文** —— `healthpipe context` 直接产出模型能读的 Markdown 摘要（当日明细 + 趋势 + 运动记录 + 数据质量）
 - **MCP server** —— `healthpipe mcp` 把健康数据挂成标准 MCP 工具，任何支持 MCP 的客户端即插即用，**零依赖**
+- **运动记录** —— 解析运动明细（类型 / 起止时间 / 时长 / 消耗 / 距离），进 AI 上下文、进仪表盘、有独立 MCP 工具
 - **多源合并** —— 快捷指令导出 + 第三方 App 导出，同一日期自动去重合并
 - **数据质量守门** —— 自动标注「疑似未佩戴手表」「步数异常」等日子，只标注不删数据
 - **单文件仪表盘** —— 图表库内联，产物是一张可离线打开、可直接发出去的 HTML
@@ -105,9 +106,10 @@ healthpipe context     # 打印给 AI 看的摘要
 
 | 工具 | 参数 | 返回 |
 |---|---|---|
-| `health_overview` | `days`（默认 7） | 最新一天明细 + 各指标趋势 + 数据质量问题 |
-| `health_daily` | `date`（默认最新一天） | 某天的完整明细，含睡眠分期 |
+| `health_overview` | `days`（默认 7） | 最新一天明细 + 各指标趋势 + 运动记录 + 数据质量问题 |
+| `health_daily` | `date`（默认最新一天） | 某天的完整明细，含睡眠分期与运动记录 |
 | `health_series` | `metric`、`days`（默认 30） | 单指标逐日时序 CSV |
+| `health_workouts` | `days`（默认 30） | 运动记录列表（类型 / 时间 / 时长 / 消耗 / 距离）+ 合计 |
 | `health_quality` | `days`（默认 30） | 数据存疑的日子列表 |
 
 ### 方式二：手动喂上下文
@@ -155,6 +157,7 @@ healthpipe context --days 14 --out ctx.md # 或写文件
 | KPI 卡片 ×6 | 睡眠时长、HRV、静息心率、步数、活动消耗、运动时间，并与区间均值对比 |
 | 睡眠结构 | 深睡 / 核心 / REM / 清醒的每日堆叠 |
 | 每日步数 | 带均值虚线，离群日自动变色 |
+| 运动记录 | 每日运动分钟数，悬停看当天的运动明细，卡头显示合计 |
 | 心率趋势 | 日均 / 日最高 / 静息 三条线 |
 | 活动消耗 | 主动运动产生的热量 |
 | 心率曲线 | 全天逐点心率，标出最低 / 最高 |
@@ -197,8 +200,12 @@ python examples/build_demo.py   # → examples/demo-data.json + demo-dashboard.h
 | `resting_hr` | 静息心率（HealthKit 原生） | 平均 | bpm |
 | `heart_rate` | 全天逐条心率 | 逐条 | bpm |
 | `sleep` | 睡眠分期分段 | 逐段 | — |
+| `workouts`（可选） | 运动记录：`type` / `start` / `end` / `duration_min` / `calories` / `distance_km` / `avg_hr` | 逐条 | — |
 
 > 累计型指标（步数、能量、距离）随一天推移不断增长，**必须每天固定同一时间点采集**，跨天的数据才可比。
+>
+> `workouts` 要在采集端产出（见 [`shortcuts/README.md`](shortcuts/README.md)），第三方 App 导出里也可能带。
+> 没有这个字段时其余功能完全不受影响。
 >
 > HRV 用的是 HealthKit 原生 SDNN 值。**不要用分钟级心率去反推 RMSSD** —— 两者量纲不同，实测能差 13 倍（3.7 vs 47.2 ms），据此得的结论全是错的。
 

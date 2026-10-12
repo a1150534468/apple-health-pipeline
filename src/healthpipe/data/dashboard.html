@@ -68,6 +68,10 @@ footer{margin-top:28px;font-size:11.5px;color:#a0a6ae;line-height:1.9;border-top
       <div class="chart" id="c-energy"></div>
     </div>
     <div class="card full">
+      <div class="card-head"><h2>运动记录</h2><span class="hint" id="hint-workouts"></span></div>
+      <div class="chart sm" id="c-workouts"></div>
+    </div>
+    <div class="card full">
       <div class="card-head"><h2>今日心率曲线</h2><span class="hint" id="hint-hrtoday"></span></div>
       <div class="chart sm" id="c-hr-today"></div>
     </div>
@@ -254,7 +258,48 @@ const DATA = /*__DATA__*/null;
     }]
   });
 
-  /* ---------------- 5. 今日心率 24h ---------------- */
+  /* ---------------- 5. 运动记录 ---------------- */
+  const wDays = DATES.map(d => (S[d].workouts || []));
+  const wCount = wDays.reduce((a, ws) => a + ws.length, 0);
+  if (wCount) {
+    const all = wDays.reduce((a, ws) => a.concat(ws), []);
+    const wSum = k => all.reduce((a, w) => a + (isNum(w[k]) ? w[k] : 0), 0);
+    const wTypes = [];
+    all.forEach(w => { if (w.type && wTypes.indexOf(w.type) < 0) wTypes.push(w.type); });
+    const wMin = wDays.map(ws =>
+      ws.reduce((a, w) => a + (isNum(w.duration_min) ? w.duration_min : 0), 0));
+
+    document.getElementById('hint-workouts').innerHTML =
+      wCount + ' 次 · 合计 ' + Math.round(wSum('duration_min')) + ' 分钟 · ' +
+      Math.round(wSum('calories')).toLocaleString() + ' kcal' +
+      (wTypes.length ? ' · ' + wTypes.join(' / ') : '');
+
+    make('c-workouts', {
+      tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' },
+        formatter: p => {
+          const i = p[0].dataIndex, ws = wDays[i];
+          if (!ws.length) return '<b>' + DATES[i] + '</b><br>没有运动记录';
+          return '<b>' + DATES[i] + '</b><br>' + ws.map(w =>
+            '· ' + (w.type || '运动') +
+            (w.start && w.end ? '　' + w.start + '→' + w.end : '') +
+            (isNum(w.duration_min) ? '　' + Math.round(w.duration_min) + ' 分钟' : '') +
+            (isNum(w.calories) ? '　' + Math.round(w.calories) + ' kcal' : '') +
+            (isNum(w.distance_km) ? '　' + w.distance_km.toFixed(2) + ' km' : '')
+          ).join('<br>');
+        } }, baseTip),
+      grid: Object.assign({}, grid, { top: 20 }),
+      xAxis: Object.assign({ type: 'category', data: cats, axisLabel: Object.assign({}, axisCommon.axisLabel, { interval: 2 }) }, axisCommon),
+      yAxis: Object.assign({ type: 'value', name: '分钟', nameTextStyle: { color: '#b8bdc4', fontSize: 11, fontFamily: FONT },
+        splitLine: { lineStyle: { color: '#f0f1f3' } } }, { axisLine: { show: false }, axisTick: { show: false }, axisLabel: axisCommon.axisLabel }),
+      series: [{
+        type: 'bar', barMaxWidth: 16,
+        itemStyle: { color: COL.exercise, borderRadius: [3, 3, 0, 0] },
+        data: wMin.map(v => v > 0 ? Math.round(v) : null)
+      }]
+    });
+  }
+
+  /* ---------------- 6. 今日心率 24h ---------------- */
   const pts = (L.hr_points || []).map(([t, v]) => {
     const a = t.split(':');
     return [+a[0] * 60 + +a[1], v];
@@ -294,7 +339,7 @@ const DATA = /*__DATA__*/null;
     });
   }
 
-  /* ---------------- 6. 今日睡眠分期时间轴 ---------------- */
+  /* ---------------- 7. 今日睡眠分期时间轴 ---------------- */
   const segs = L.sleep_segments || [];
   if (segs.length) {
     const order = ['Deep', 'Core', 'REM', 'Awake'];

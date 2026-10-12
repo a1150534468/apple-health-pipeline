@@ -70,6 +70,17 @@ TOOLS: list[dict] = [
         },
     },
     {
+        "name": "health_workouts",
+        "description": (
+            "列出最近 N 天的运动记录：运动类型、起止时间、时长、消耗、距离。"
+            "回答『我最近有没有运动』『这周练了几次』『跑步总里程多少』这类问题时用它。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"days": {"type": "integer", "description": "回溯天数，默认 30", "default": 30}},
+        },
+    },
+    {
         "name": "health_quality",
         "description": (
             "列出最近 N 天里数据质量存疑的日子（疑似未佩戴手表、步数异常等）。"
@@ -130,10 +141,31 @@ def _quality(store: DataStore, args: dict) -> str:
     return f"# 数据质量存疑的日子（{span}）\n\n" + "\n".join(rows)
 
 
+def _workouts(store: DataStore, args: dict) -> str:
+    days = int(args.get("days") or 30)
+    series = store.series()
+    if not series:
+        return "（没有可用的健康数据）"
+    window = sorted(series)[-days:]
+    span = f"{window[0]} → {window[-1]}"
+    entries = [(d, w) for d in window for w in (series[d].get("workouts") or [])]
+    if not entries:
+        return (f"# 运动记录（{span}）\n\n本区间没有运动记录。\n\n"
+                "（如果确实运动过，可能是采集端还没加上运动记录："
+                "快捷指令的导出 JSON 里需要有 `workouts` 字段。）")
+    lines = [f"# 运动记录（{span}）", ""]
+    for d, w in reversed(entries):
+        lines.append(f"- `{d}`　{context.workout_line(w)}")
+    lines.append("")
+    lines.append(context.workout_totals(entries))
+    return "\n".join(lines)
+
+
 HANDLERS: dict[str, Callable[[DataStore, dict], str]] = {
     "health_overview": _overview,
     "health_daily": _daily,
     "health_series": _series,
+    "health_workouts": _workouts,
     "health_quality": _quality,
 }
 

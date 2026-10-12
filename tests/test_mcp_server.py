@@ -44,7 +44,8 @@ def test_initialize_without_client_version_uses_default():
 def test_tools_list_exposes_readonly_tools():
     out = mcp_server._dispatch("tools/list", {}, _store(), {})
     names = {t["name"] for t in out["tools"]}
-    assert names == {"health_overview", "health_daily", "health_series", "health_quality"}
+    assert names == {"health_overview", "health_daily", "health_series",
+                     "health_workouts", "health_quality"}
     for t in out["tools"]:
         assert t["description"] and t["inputSchema"]["type"] == "object"
 

@@ -13,6 +13,45 @@ def hm(t: str) -> int:
     return int(h) * 60 + int(m)
 
 
+def as_num(v):
+    """把值转成 float；转不了返回 None。
+
+    快捷指令拼出来的是字符串，数字字段常常带着引号（``"duration_min":"33.2"``），
+    所以需要统一转换一次。``bool`` 不算数字。
+    """
+    if isinstance(v, bool) or v is None:
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _sum_key(items: list[dict], key: str):
+    """把一组 dict 的某个数值字段求和；一个都没有就返回 None。"""
+    vals = [n for it in items if isinstance(n := as_num(it.get(key)), float)]
+    return round(sum(vals), 1) if vals else None
+
+
+def workout_summary(dd: dict) -> dict:
+    """把一天的运动记录聚合成一行摘要。
+
+    不落库、按需计算 —— 这样 ``anonymize()`` 只需要管 ``workouts`` 本身，
+    不会因为多了一个派生字段而漏掉。
+    """
+    ws = dd.get("workouts") or []
+    if not ws:
+        return {"n": 0, "duration_min": None, "calories": None,
+                "distance_km": None, "types": []}
+    return {
+        "n": len(ws),
+        "duration_min": _sum_key(ws, "duration_min"),
+        "calories": _sum_key(ws, "calories"),
+        "distance_km": _sum_key(ws, "distance_km"),
+        "types": sorted({str(w.get("type") or "").strip() for w in ws if w.get("type")}),
+    }
+
+
 def minute_of_day(t: str) -> int:
     """同 hm，语义化别名。"""
     return hm(t)

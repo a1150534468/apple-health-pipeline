@@ -49,6 +49,49 @@ def _window_stats(series: dict[str, dict], dates: list[str], key: str) -> dict |
     }
 
 
+def workout_line(w: dict) -> str:
+    """把一条运动记录压成一行，例如「跑步 18:32→19:05 · 33 分钟 · 320 kcal · 5.12 km」。"""
+    label = str(w.get("type") or "运动")
+    if w.get("start") and w.get("end"):
+        label += f" {w['start']}→{w['end']}"
+    elif w.get("start"):
+        label += f" {w['start']}"
+
+    parts = [label]
+    if isinstance(w.get("duration_min"), (int, float)):
+        parts.append(f"{w['duration_min']:.0f} 分钟")
+    if isinstance(w.get("calories"), (int, float)):
+        parts.append(f"{w['calories']:.0f} kcal")
+    if isinstance(w.get("distance_km"), (int, float)):
+        parts.append(f"{w['distance_km']:.2f} km")
+    if isinstance(w.get("avg_hr"), (int, float)):
+        parts.append(f"平均心率 {w['avg_hr']:.0f} bpm")
+    return " · ".join(parts)
+
+
+def workout_totals(entries: list[tuple[str, dict]]) -> str:
+    """把 ``[(日期, 运动记录), ...]`` 压成一行合计。"""
+    if not entries:
+        return ""
+    mins = sum(w["duration_min"] for _d, w in entries
+               if isinstance(w.get("duration_min"), (int, float)))
+    kcals = sum(w["calories"] for _d, w in entries
+                if isinstance(w.get("calories"), (int, float)))
+    dist = sum(w["distance_km"] for _d, w in entries
+               if isinstance(w.get("distance_km"), (int, float)))
+    types = sorted({str(w.get("type") or "").strip() for _d, w in entries if w.get("type")})
+    parts = [f"**合计** {len(entries)} 次"]
+    if mins:
+        parts.append(f"{mins:.0f} 分钟")
+    if kcals:
+        parts.append(f"{kcals:.0f} kcal")
+    if dist:
+        parts.append(f"{dist:.2f} km")
+    if types:
+        parts.append("类型：" + "、".join(types))
+    return " · ".join(parts)
+
+
 def render_context(series: dict[str, dict], days: int = 7, title: str = "健康数据上下文") -> str:
     """生成给 LLM 的摘要：最新一天明细 + N 天趋势 + 数据质量。"""
     dates = sorted(series)
@@ -103,6 +146,19 @@ def render_context(series: dict[str, dict], days: int = 7, title: str = "健康�
         lines.append(row)
     lines.append("")
 
+    # ---- 运动记录 ----
+    lines.append(f"## 运动记录（近 {len(window)} 天）")
+    lines.append("")
+    entries = [(d, w) for d in window for w in (series[d].get("workouts") or [])]
+    if entries:
+        for d, w in reversed(entries):
+            lines.append(f"- `{d}`　{workout_line(w)}")
+        lines.append("")
+        lines.append(workout_totals(entries))
+    else:
+        lines.append("- 本区间没有运动记录")
+    lines.append("")
+
     # ---- 数据质量 ----
     qc = [(d, series[d]["qc"]) for d in window if series[d].get("qc")]
     lines.append("## 数据质量")
@@ -142,6 +198,13 @@ def render_daily(series: dict[str, dict], date: str | None = None) -> str:
         for k, name in (("deep", "深睡"), ("core", "核心"), ("rem", "REM"), ("awake", "清醒")):
             if sl.get(k) is not None:
                 lines.append(f"- {name}：{sl[k]:.0f}")
+
+    ws = dd.get("workouts") or []
+    if ws:
+        lines.append("")
+        lines.append("运动记录：")
+        for w in ws:
+            lines.append(f"- {workout_line(w)}")
 
     if dd.get("qc"):
         lines.append("")
