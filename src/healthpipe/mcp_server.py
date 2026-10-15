@@ -24,10 +24,13 @@ import json
 import sys
 from typing import Any, Callable
 
-from . import __version__, context, metrics, sources
+from . import __version__, context, pipeline
 from .config import Config
 
 PROTOCOL_VERSION = "2024-11-05"
+
+# health_series 的可用指标直接从 context.METRICS 生成 —— 新增字段不用再改这里
+_SERIES_METRICS = " / ".join(k for k, _label, _digits, _unit in context.METRICS)
 
 TOOLS: list[dict] = [
     {
@@ -55,11 +58,7 @@ TOOLS: list[dict] = [
     },
     {
         "name": "health_series",
-        "description": (
-            "获取单个指标的逐日时序（CSV）。"
-            "可用指标：sleep_asleep_h / deep_pct / hrv_ms / hr_resting / "
-            "steps / active_kcal / exercise_min / distance_km"
-        ),
+        "description": f"获取单个指标的逐日时序（CSV）。可用指标：{_SERIES_METRICS}",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -95,7 +94,11 @@ TOOLS: list[dict] = [
 
 
 class DataStore:
-    """懒加载 + 缓存已解析的时序数据（一个进程内只解析一次）。"""
+    """懒加载 + 缓存已解析的时序数据（一个进程内只解析一次）。
+
+    必须走 pipeline.load_series 与 CLI 共享同一条加载路径 ——
+    曾经这里手写了一份只含旧两源的加载逻辑，healthsync 的字段静默缺失。
+    """
 
     def __init__(self, cfg: Config):
         self.cfg = cfg
@@ -103,10 +106,8 @@ class DataStore:
 
     def series(self) -> dict[str, dict]:
         if self._series is None:
-            export = sources.load_healthexport(self.cfg.healthexport_dir)
-            shortcut = sources.load_shortcut(self.cfg.shortcut_dir)
-            merged = {d: v for d, v in sorted(sources.merge(export, shortcut).items()) if v}
-            self._series = metrics.enrich(merged)
+            loaded, *_rest = pipeline.load_series(self.cfg)
+            self._series = pipeline.apply_privacy(loaded, self.cfg)
         return self._series
 
 
@@ -151,8 +152,8 @@ def _workouts(store: DataStore, args: dict) -> str:
     entries = [(d, w) for d in window for w in (series[d].get("workouts") or [])]
     if not entries:
         return (f"# 运动记录（{span}）\n\n本区间没有运动记录。\n\n"
-                "（如果确实运动过，可能是采集端还没加上运动记录："
-                "快捷指令的导出 JSON 里需要有 `workouts` 字段。）")
+                "（如果确实运动过，可能是 health-sync-data 仓库还没拉到最新："
+                "先跑 `healthpipe pull` 再让客户端重新调用，运动记录来自 workout_sessions.csv。）")
     lines = [f"# 运动记录（{span}）", ""]
     for d, w in reversed(entries):
         lines.append(f"- `{d}`　{context.workout_line(w)}")

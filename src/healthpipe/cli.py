@@ -17,7 +17,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import __version__, context, dashboard, metrics, report, sources
+from . import __version__, context, dashboard, pipeline, report
 from .config import Config
 
 DEFAULT_CONFIG = "config.toml"
@@ -46,23 +46,12 @@ def git_pull(cfg: Config) -> str:
 
 
 def _load_series(cfg: Config) -> tuple[dict, dict, dict, dict]:
-    """读所有数据源 → 合并 → 补派生字段。
-
-    healthexport / shortcut 按字段合并；healthsync 是权威源，同日期整天替换 ——
-    避免和旧来源的同名字段拼出一个混合口径的一天。
-    """
-    export = sources.load_healthexport(cfg.healthexport_dir)
-    shortcut = sources.load_shortcut(cfg.shortcut_dir)
-    healthsync = sources.load_healthsync(cfg.healthsync_dir)
-    series = sources.merge(export, shortcut)
-    for d, dd in healthsync.items():
-        series[d] = dict(dd)
-    series = {d: v for d, v in sorted(series.items()) if v}
-    return metrics.enrich(series), export, shortcut, healthsync
+    """读所有数据源 → 合并 → 补派生字段（统一走 pipeline，与 MCP 共享一份逻辑）。"""
+    return pipeline.load_series(cfg)
 
 
 def _apply_privacy(series: dict, cfg: Config) -> dict:
-    return metrics.anonymize(series, cfg.anonymize_seed) if cfg.anonymize else series
+    return pipeline.apply_privacy(series, cfg)
 
 
 def _meta(cfg: Config, export: dict, shortcut: dict, healthsync: dict) -> dict:

@@ -91,3 +91,32 @@ def test_serve_answers_handshake_and_reports_errors(monkeypatch):
     assert [r["id"] for r in resp] == [1, 2, 3]
     assert "睡眠不足 3h" in resp[1]["result"]["content"][0]["text"]
     assert resp[2]["error"]["code"] == -32603
+
+
+def test_datastore_shares_cli_pipeline(tmp_path):
+    """回归：DataStore 必须与 CLI 走同一条加载管线。
+
+    曾经 DataStore 手写了一份只含旧两源的加载逻辑，漏接 healthsync 源，
+    导致血氧/呼吸率/站立/爬楼/运动记录在 MCP 里静默缺失。
+    """
+    from healthpipe.config import Config
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "daily_metrics.csv").write_text(
+        "date,step_count,oxygen_saturation_average\n2026-10-15,999,0.9776923\n",
+        encoding="utf-8",
+    )
+
+    cfg = Config(shortcut_dir=tmp_path, output_dir=tmp_path / "out", healthsync_dir=repo)
+    series = mcp_server.DataStore(cfg).series()
+    assert series["2026-10-15"]["steps"] == 999.0
+    assert series["2026-10-15"]["spo2_avg"] == 97.8     # healthsync 的字段必须可见
+    assert series["2026-10-15"]["_source"] == "healthsync"
+
+
+def test_series_description_lists_all_metrics():
+    """health_series 的描述应覆盖 context.METRICS 的全部指标，不许再手写硬编码。"""
+    desc = next(t["description"] for t in mcp_server.TOOLS if t["name"] == "health_series")
+    for key, *_ in __import__("healthpipe.context", fromlist=["METRICS"]).METRICS:
+        assert key in desc, f"描述里缺少指标 {key}"

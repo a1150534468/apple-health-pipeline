@@ -159,7 +159,7 @@ def test_mcp_health_workouts_hints_when_empty():
                                _Store({"2026-10-11": {"steps": 1}}), {})
     text = out["content"][0]["text"]
     assert "本区间没有运动记录" in text
-    assert "workouts" in text            # 提示是采集端的问题，方便排查
+    assert "health-sync-data" in text     # 提示是采集端的问题，方便排查
 
 
 # --------------------------------------------------------------------- 脱敏

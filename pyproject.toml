@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "healthpipe"
-version = "0.1.0"
+version = "0.2.0"
 description = "Turn Apple Health exports into a local, analysable time series — with a fault-tolerant parser for broken Shortcuts JSON."
 readme = "README.md"
 requires-python = ">=3.11"
