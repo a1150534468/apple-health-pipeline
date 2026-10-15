@@ -20,6 +20,10 @@ METRICS = [
     ("active_kcal", "活动消耗", 0, " kcal"),
     ("exercise_min", "运动时间", 0, " min"),
     ("distance_km", "步行距离", 2, " km"),
+    ("spo2_avg", "血氧", 1, "%"),
+    ("resp_rate", "呼吸率", 1, " 次/分"),
+    ("stand_min", "站立时间", 0, " min"),
+    ("flights", "爬楼", 0, " 层"),
 ]
 
 

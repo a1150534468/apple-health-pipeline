@@ -184,6 +184,7 @@ _WORKOUT_TYPES_ZH = {
 _DAILY_KEYS = (
     "steps", "distance_km", "active_kcal", "basal_kcal", "exercise_min",
     "hrv_ms", "hr_resting", "hr_avg", "hr_max", "hr_min",
+    "spo2_avg", "resp_rate", "stand_min", "flights",
 )
 
 
@@ -245,6 +246,13 @@ def _load_healthsync_daily(path: Path) -> dict[str, dict]:
         dd["hr_avg"] = as_num(row.get("hr_average_bpm"))
         dd["hr_max"] = as_num(row.get("hr_max_bpm"))
         dd["hr_min"] = as_num(row.get("heart_rate_min"))
+        spo2 = as_num(row.get("oxygen_saturation_average"))
+        # HealthKit 存小数（0.98 = 98%），统一换算成百分数
+        dd["spo2_avg"] = round(spo2 * 100, 1) if spo2 is not None else None
+        rr = as_num(row.get("respiratory_rate_average"))
+        dd["resp_rate"] = round(rr, 1) if rr is not None else None
+        dd["stand_min"] = as_num(row.get("apple_stand_time_sum"))
+        dd["flights"] = as_num(row.get("flights_climbed"))
     return days
 
 

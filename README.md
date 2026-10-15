@@ -204,6 +204,10 @@ python examples/build_demo.py   # → examples/demo-data.json + demo-dashboard.h
 | `basal_energy_kcal` | 静息（基础）能量 | 求和 | kcal |
 | `hrv_ms` | 心率变异性（HealthKit 原生 SDNN） | 平均 | ms |
 | `resting_hr` | 静息心率（HealthKit 原生） | 平均 | bpm |
+| `spo2_avg` | 血氧（HealthKit 小数已换算成百分数；仅 health-sync 源） | 平均 | % |
+| `resp_rate` | 呼吸率（仅 health-sync 源） | 平均 | 次/分 |
+| `stand_min` | 站立时间（仅 health-sync 源） | 求和 | min |
+| `flights` | 爬楼层（仅 health-sync 源） | 求和 | 层 |
 | `heart_rate` | 全天逐条心率 | 逐条 | bpm |
 | `sleep` | 睡眠分期分段 | 逐段 | — |
 | `workouts`（可选） | 运动记录：`type` / `start` / `end` / `duration_min` / `calories` / `distance_km` / `avg_hr` | 逐条 | — |

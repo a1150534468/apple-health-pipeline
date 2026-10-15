@@ -32,8 +32,10 @@ def test_daily_mapping_and_units(tmp_path):
     _make_repo(tmp_path, daily=[
         ("date,step_count,distance_walking_running_meters,active_energy_burned_kcal,"
          "basal_energy_burned_kcal,apple_exercise_time_sum,heart_rate_variability_ms,"
-         "resting_hr_average_bpm,hr_average_bpm,hr_max_bpm,heart_rate_min"),
-        ("2026-10-15,2993,2329.2162405251197,139.93,793.85,15,49.56,73,68.88,131,51"),
+         "resting_hr_average_bpm,hr_average_bpm,hr_max_bpm,heart_rate_min,"
+         "oxygen_saturation_average,respiratory_rate_average,apple_stand_time_sum,flights_climbed"),
+        ("2026-10-15,2993,2329.2162405251197,139.93,793.85,15,49.56,73,68.88,131,51,"
+         "0.9776923076923077,15.016666666666664,35,1"),
     ])
     days = load_healthsync(tmp_path)
     dd = days["2026-10-15"]
@@ -47,6 +49,10 @@ def test_daily_mapping_and_units(tmp_path):
     assert dd["hr_avg"] == 68.88
     assert dd["hr_max"] == 131.0
     assert dd["hr_min"] == 51.0
+    assert dd["spo2_avg"] == 97.8             # HealthKit 小数 → 百分数
+    assert dd["resp_rate"] == 15.0
+    assert dd["stand_min"] == 35.0
+    assert dd["flights"] == 1.0
     assert dd["_source"] == "healthsync"
 
 

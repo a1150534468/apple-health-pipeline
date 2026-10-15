@@ -129,6 +129,7 @@ def stat_of(series: dict[str, dict], key: str) -> dict:
 _SCALE_KEYS = (
     "steps", "distance_km", "active_kcal", "basal_kcal", "exercise_min",
     "sleep_asleep_h", "sleep_inbed_h", "hrv_ms",
+    "resp_rate", "stand_min", "flights",
 )
 # 需要加性扰动的字段（心率类，缩放意义不大）
 _OFFSET_KEYS = ("hr_avg", "hr_resting", "hr_max", "hr_min")
@@ -139,6 +140,8 @@ _NESTED_SCALE_KEYS = ("calories", "duration_min", "distance_km")
 # sleep_efficiency 是「实睡 / 在床」的比例。等比缩放后分子分母同步变，比值不变 ——
 # 光靠缩放抹不掉，只能加个小抖动。
 _EFFICIENCY_JITTER = 1.5
+# 血氧同理：它是 94–100 区间的比值，等比缩放会跑出荒唐值，只能加抖动。
+_SPO2_JITTER = 1.0
 
 
 def _shifted_factor(rnd: random.Random) -> float:
@@ -197,6 +200,11 @@ def anonymize(series: dict[str, dict], seed: int = 20261011) -> dict[str, dict]:
         if isinstance(nd.get("sleep_efficiency"), (int, float)):
             nd["sleep_efficiency"] = round(
                 nd["sleep_efficiency"] + _shifted_offset(rnd, _EFFICIENCY_JITTER, 0.3), 1
+            )
+
+        if isinstance(nd.get("spo2_avg"), (int, float)):
+            nd["spo2_avg"] = round(
+                nd["spo2_avg"] + _shifted_offset(rnd, _SPO2_JITTER, 0.3), 1
             )
 
         ws = nd.get("workouts")
