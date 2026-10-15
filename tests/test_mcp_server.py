@@ -45,7 +45,7 @@ def test_tools_list_exposes_readonly_tools():
     out = mcp_server._dispatch("tools/list", {}, _store(), {})
     names = {t["name"] for t in out["tools"]}
     assert names == {"health_overview", "health_daily", "health_series",
-                     "health_workouts", "health_quality"}
+                     "health_fields", "health_workouts", "health_quality"}
     for t in out["tools"]:
         assert t["description"] and t["inputSchema"]["type"] == "object"
 
@@ -117,6 +117,30 @@ def test_datastore_shares_cli_pipeline(tmp_path):
 
 def test_series_description_lists_all_metrics():
     """health_series 的描述应覆盖 context.METRICS 的全部指标，不许再手写硬编码。"""
+    import healthpipe.context as ctx
     desc = next(t["description"] for t in mcp_server.TOOLS if t["name"] == "health_series")
-    for key, *_ in __import__("healthpipe.context", fromlist=["METRICS"]).METRICS:
+    for key, *_ in ctx.METRICS:
         assert key in desc, f"描述里缺少指标 {key}"
+
+
+def test_fields_discovers_unlisted_fields():
+    """核心卖点：不在任何硬编码清单里的字段，也应被发现并报出覆盖率。"""
+    series = {
+        "2026-10-14": {"steps": 100, "sleep_efficiency": 88.0,
+                       "sleep": {"core": 300}, "workouts": [{"type": "步行"}],
+                       "captured_at": "22:00", "_source": "shortcut"},
+        "2026-10-15": {"steps": 200, "sleep_efficiency": 91.5,
+                       "spo2_avg": 97.8, "weight_kg": 60.6},
+    }
+    text = mcp_server._dispatch(
+        "tools/call", {"name": "health_fields", "arguments": {}}, FakeStore(series), {}
+    )["content"][0]["text"]
+
+    assert "sleep_efficiency" in text        # 有数据但没进报表 → 原始字段区
+    assert "weight_kg" in text               # 全新字段也能被发现
+    assert "spo2_avg" in text                # 报表指标照常列出
+    assert "`workouts`：1 天有，共 1 条" in text   # 结构化数据
+    assert "_source" not in text             # 内部字段不外泄
+    assert "captured_at" in text             # 字符串元数据
+    # 覆盖率：2 天里 sleep_efficiency 有 2 天
+    assert "2（100%）" in text

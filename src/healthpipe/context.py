@@ -235,3 +235,92 @@ def render_series(series: dict[str, dict], metric: str, days: int = 30) -> str:
         rows.append(f"{d},{_fmt(val, digits[metric]) if val is not None else ''}")
     header = f"# {labels[metric]}{unit[metric]} 时序（{dates[0]} → {dates[-1]}）\n\ndate,value"
     return header + "\n" + "\n".join(rows)
+
+
+def render_fields(series: dict[str, dict], title: str = "数据字段一览") -> str:
+    """列出时序里**实际存在**的全部字段和覆盖率（供 MCP 的 health_fields 工具使用）。
+
+    动机：采集源一换字段就变（快捷指令 → health-sync → 以后还可能换），
+    AI 应该能自己「发现」字段，而不是靠文档或代码里的硬编码清单。
+    未进报表的原始字段（如 sleep_efficiency、hr_avg）在这里也能被看到，
+    AI 可以直接用 health_daily / health_series 去查它们。
+    """
+    dates = sorted(series)
+    if not dates:
+        return "（没有可用的健康数据）"
+    total = len(dates)
+    known = {k: (label, digits, unit) for k, label, digits, unit in METRICS}
+
+    # ---- 结构化字段（dict / list：睡眠分期、运动记录、分钟级心率……） ----
+    struct_rows = []                                    # (key, 天数, 条数)
+    struct_keys = sorted({k for dd in series.values() for k in dd
+                          if isinstance(dd.get(k), (list, dict))})
+    for key in struct_keys:
+        days = sum(1 for d in dates if series[d].get(key))
+        items = sum(len(series[d][key]) for d in dates if isinstance(series[d].get(key), list))
+        struct_rows.append((key, days, items))
+
+    # ---- 数值字段：METRICS 声明的（含派生） ∪ 数据里实际出现的 ----
+    numeric_keys = [k for k, *_ in METRICS]
+    numeric_keys += sorted({k for dd in series.values()
+                            for k, v in dd.items() if isinstance(v, (int, float))
+                            and k not in known})
+    known_rows, raw_rows = [], []                       # (key, label, 天数, 最新有值日, 最新值)
+    for key in numeric_keys:
+        have = [(d, v) for d in dates
+                if isinstance(v := _value(series[d], key), (int, float))]
+        label, digits, unit = known.get(key, (key, 1, ""))
+        if not have:
+            if key in known:
+                known_rows.append((key, label, 0, "—", "—"))
+            continue
+        latest_d, latest_v = have[-1]
+        if key not in known:
+            digits = 1 if isinstance(latest_v, float) else 0
+        entry = (key, label, len(have), latest_d, _fmt(latest_v, digits, unit))
+        (known_rows if key in known else raw_rows).append(entry)
+
+    # ---- 字符串元数据（captured_at 之类） ----
+    meta_rows = []                                      # (key, 天数)
+    for key in sorted({k for dd in series.values() for k, v in dd.items()
+                       if isinstance(v, str) and not k.startswith("_")}):
+        meta_rows.append((key, sum(1 for d in dates if series[d].get(key))))
+
+    def _table(rows):
+        out = ["| 字段 | 名称 | 有值天数 | 最新有值日 | 最新值 |", "|---|---|---|---|---|"]
+        for key, label, n, latest_d, latest_v in rows:
+            cov = f"{n / total * 100:.0f}%" if n else "0%"
+            out.append(f"| `{key}` | {label} | {n}（{cov}） | {latest_d} | {latest_v} |")
+        return out
+
+    lines = [f"# {title}", "",
+             f"数据区间：**{dates[0]} → {dates[-1]}**（{total} 天）。"
+             "查数值用 `health_series` / `health_daily`；这里回答「有哪些字段、覆盖几天」。", ""]
+
+    lines.append("## 报表指标（进 overview / daily / series）")
+    lines.append("")
+    lines += _table(known_rows)
+    lines.append("")
+
+    if raw_rows:
+        lines.append("## 原始字段（有数据但没进报表，AI 可直接使用）")
+        lines.append("")
+        lines += _table(raw_rows)
+        lines.append("")
+
+    if struct_rows:
+        lines.append("## 结构化数据")
+        lines.append("")
+        for key, days, items in struct_rows:
+            extra = f"，共 {items} 条" if items else ""
+            lines.append(f"- `{key}`：{days} 天有{extra}")
+        lines.append("")
+
+    if meta_rows:
+        lines.append("## 元数据")
+        lines.append("")
+        for key, n in meta_rows:
+            lines.append(f"- `{key}`：{n} 天有")
+        lines.append("")
+
+    return "\n".join(lines)

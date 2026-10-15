@@ -69,6 +69,15 @@ TOOLS: list[dict] = [
         },
     },
     {
+        "name": "health_fields",
+        "description": (
+            "列出数据里实际存在的全部字段和覆盖率：报表指标 / 未进报表的原始字段 / "
+            "结构化数据（睡眠分期、运动记录等）。采集源新增了字段、或不确定某个指标"
+            "有没有数据时先调它 —— 字段是动态发现的，不靠硬编码清单。"
+        ),
+        "inputSchema": {"type": "object", "properties": {}},
+    },
+    {
         "name": "health_workouts",
         "description": (
             "列出最近 N 天的运动记录：运动类型、起止时间、时长、消耗、距离。"
@@ -129,6 +138,10 @@ def _series(store: DataStore, args: dict) -> str:
     )
 
 
+def _fields(store: DataStore, args: dict) -> str:
+    return context.render_fields(store.series())
+
+
 def _quality(store: DataStore, args: dict) -> str:
     days = int(args.get("days") or 30)
     series = store.series()
@@ -166,6 +179,7 @@ HANDLERS: dict[str, Callable[[DataStore, dict], str]] = {
     "health_overview": _overview,
     "health_daily": _daily,
     "health_series": _series,
+    "health_fields": _fields,
     "health_workouts": _workouts,
     "health_quality": _quality,
 }

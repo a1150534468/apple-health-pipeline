@@ -109,6 +109,7 @@ healthpipe context     # 打印给 AI 看的摘要
 | `health_overview` | `days`（默认 7） | 最新一天明细 + 各指标趋势 + 运动记录 + 数据质量问题 |
 | `health_daily` | `date`（默认最新一天） | 某天的完整明细，含睡眠分期与运动记录 |
 | `health_series` | `metric`、`days`（默认 30） | 单指标逐日时序 CSV |
+| `health_fields` | — | 数据里实际存在的全部字段 + 覆盖率（动态发现，新增采集字段无需改代码） |
 | `health_workouts` | `days`（默认 30） | 运动记录列表（类型 / 时间 / 时长 / 消耗 / 距离）+ 合计 |
 | `health_quality` | `days`（默认 30） | 数据存疑的日子列表 |
 
