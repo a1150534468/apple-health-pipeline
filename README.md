@@ -169,14 +169,20 @@ healthpipe context --days 14 --out ctx.md # 或写文件
 
 ## 数据来源
 
-项目支持两个来源，也可只用其中一个：
+项目支持三个来源，可任意组合：
 
 | 来源 | 字段完整度 | 说明 |
 |---|---|---|
-| **iPhone 快捷指令** | 完整 | 含 HRV、静息心率等 HealthKit 原生指标 |
+| **health-sync 仓库**（推荐） | 最完整 | iPhone 端定时把 HealthKit 导成 3 个 CSV（`daily_metrics` / `sleep_sessions` / `workout_sessions`）推到 GitHub 私有仓库，Mac 端 `git pull` 即可；**自带运动记录** |
+| iPhone 快捷指令 | 较全 | 含 HRV、静息心率等 HealthKit 原生指标；不含运动记录明细 |
 | 第三方 App 导出（如 HealthExport） | 较少 | 通常缺 HRV，但可以提供历史存量数据 |
 
-两者按日期合并，**快捷指令的数据优先**。
+合并规则：快捷指令 / App 导出之间按日期合并，后加载的覆盖先加载的；
+**health-sync 是权威源，同一日期整天替换**——它的采集端最完整，按字段拼接反而会拼出混合口径的一天。
+
+在 `config.toml` 里把 `healthsync_dir` 指向仓库的本地克隆，`healthpipe sync` 会先自动 `git pull`
+（网络不通时警告一声、用本地已有数据继续）；也可以单独跑 `healthpipe pull`。
+两台设备都走 GitHub，iPhone 和 Mac 不需要互相直连。
 
 > ⚠️ `examples/` 里的 demo 是**纯合成数据**，由 [`examples/build_demo.py`](examples/build_demo.py) 生成，不含任何真实健康数据。
 > 生成脚本可以直接跑，改改参数就能得到一份自己的演示数据：
@@ -203,9 +209,13 @@ python examples/build_demo.py   # → examples/demo-data.json + demo-dashboard.h
 | `workouts`（可选） | 运动记录：`type` / `start` / `end` / `duration_min` / `calories` / `distance_km` / `avg_hr` | 逐条 | — |
 
 > 累计型指标（步数、能量、距离）随一天推移不断增长，**必须每天固定同一时间点采集**，跨天的数据才可比。
+> health-sync 源由 iPhone 端在固定时间导出，天然满足这条；快捷指令源则取决于自动化跑的时间。
 >
-> `workouts` 要在采集端产出（见 [`shortcuts/README.md`](shortcuts/README.md)），第三方 App 导出里也可能带。
+> `workouts` 在 health-sync 源里**自带**（`workout_sessions.csv`）；快捷指令源要在采集端产出（见 [`shortcuts/README.md`](shortcuts/README.md)）。
 > 没有这个字段时其余功能完全不受影响。
+>
+> health-sync 源**不含分钟级心率**（`heart_rate` 逐条 / `hr_points`），因此仪表盘的「今日心率曲线」
+> 在只有 health-sync 数据时会显示提示而不是曲线；全天心率的最值与均值仍由 `daily_metrics.csv` 提供。
 >
 > HRV 用的是 HealthKit 原生 SDNN 值。**不要用分钟级心率去反推 RMSSD** —— 两者量纲不同，实测能差 13 倍（3.7 vs 47.2 ms），据此得的结论全是错的。
 

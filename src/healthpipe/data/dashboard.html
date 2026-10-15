@@ -169,8 +169,11 @@ const DATA = /*__DATA__*/null;
   }).join('');
 
   /* ---------------- 头部信息 ---------------- */
+  const srcLine = (DATA.sources.days_from_healthsync > 0)
+    ? '数据源：Apple Watch → iPhone（health-sync 每日推送 GitHub 私有仓库）→ git pull → Mac 解析'
+    : '数据源：Apple Watch → iPhone 快捷指令（每日 22:00）→ iCloud → Mac 解析';
   document.getElementById('meta').innerHTML =
-    '数据源：Apple Watch → iPhone 快捷指令（每日 22:00）→ iCloud → Mac 解析<br>' +
+    srcLine + '<br>' +
     '区间 <b>' + DATA.date_range[0] + ' → ' + DATA.date_range[1] + '</b>（' +
     DATA.sources.days_total + ' 天） · 生成于 <b>' + DATA.generated_at + '</b>';
 
@@ -337,6 +340,9 @@ const DATA = /*__DATA__*/null;
         }
       }]
     });
+  } else {
+    document.getElementById('hint-hrtoday').innerHTML =
+      '今日无分钟级心率（当前采集源不提供）';
   }
 
   /* ---------------- 7. 今日睡眠分期时间轴 ---------------- */

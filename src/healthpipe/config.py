@@ -26,6 +26,8 @@ class Config:
     output_dir: Path = Path("./output")
     # 可选：第三方 App（如 HealthExport）的导出目录
     healthexport_dir: Path | None = None
+    # 可选：health-sync-data 仓库本地克隆（iPhone 定时推 GitHub 的 CSV 镜像，权威源）
+    healthsync_dir: Path | None = None
 
     dashboard_title: str = "健康数据仪表盘"
     dashboard_subtitle: str = "Apple Watch · 本地数据管道"
@@ -56,6 +58,7 @@ class Config:
             raise ValueError("config.toml 缺少必填项 [paths] shortcut_dir")
 
         he = (paths.get("healthexport_dir") or "").strip() or None
+        hs = (paths.get("healthsync_dir") or "").strip() or None
         dash = raw.get("dashboard") or {}
         rep = raw.get("report") or {}
         priv = raw.get("privacy") or {}
@@ -64,6 +67,7 @@ class Config:
             shortcut_dir=_expand(shortcut_dir),
             output_dir=_expand(paths.get("output_dir") or "./output"),
             healthexport_dir=_expand(he) if he else None,
+            healthsync_dir=_expand(hs) if hs else None,
             dashboard_title=dash.get("title") or "健康数据仪表盘",
             dashboard_subtitle=dash.get("subtitle") or "Apple Watch · 本地数据管道",
             report_filename=rep.get("filename") or "健康记录.md",

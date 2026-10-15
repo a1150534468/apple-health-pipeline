@@ -1,5 +1,6 @@
 """命令行入口。
 
+    healthpipe pull         从 health-sync-data 仓库拉最新数据（git pull）
     healthpipe sync        解析导出文件，合并成统一时序（output/series.json）
     healthpipe dashboard   生成单文件 HTML 仪表盘
     healthpipe report      生成 Markdown 汇总表
@@ -12,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -21,25 +23,56 @@ from .config import Config
 DEFAULT_CONFIG = "config.toml"
 
 
-def _load_series(cfg: Config) -> tuple[dict, dict, dict]:
-    """读所有数据源 → 合并 → 补派生字段。"""
+def git_pull(cfg: Config) -> str:
+    """在 healthsync 仓库里 git pull；返回一句话结果（未配置返回空串）。"""
+    d = cfg.healthsync_dir
+    if not d:
+        return ""
+    if not (d / ".git").exists():
+        return f"⚠️ {d} 不是 git 仓库，跳过拉取"
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(d), "pull", "--ff-only"],
+            capture_output=True, text=True, timeout=60,
+        )
+        out = ((r.stdout or "") + (r.stderr or "")).strip()
+        if r.returncode == 0:
+            last = out.splitlines()[-1] if out else "已更新"
+            return f"✅ 已拉取：{last}"
+        first = out.splitlines()[-1] if out else f"退出码 {r.returncode}"
+        return f"⚠️ 拉取失败（用本地已有数据继续）：{first}"
+    except Exception as e:                                   # 网络不通等
+        return f"⚠️ 拉取失败（用本地已有数据继续）：{e}"
+
+
+def _load_series(cfg: Config) -> tuple[dict, dict, dict, dict]:
+    """读所有数据源 → 合并 → 补派生字段。
+
+    healthexport / shortcut 按字段合并；healthsync 是权威源，同日期整天替换 ——
+    避免和旧来源的同名字段拼出一个混合口径的一天。
+    """
     export = sources.load_healthexport(cfg.healthexport_dir)
     shortcut = sources.load_shortcut(cfg.shortcut_dir)
+    healthsync = sources.load_healthsync(cfg.healthsync_dir)
     series = sources.merge(export, shortcut)
+    for d, dd in healthsync.items():
+        series[d] = dict(dd)
     series = {d: v for d, v in sorted(series.items()) if v}
-    return metrics.enrich(series), export, shortcut
+    return metrics.enrich(series), export, shortcut, healthsync
 
 
 def _apply_privacy(series: dict, cfg: Config) -> dict:
     return metrics.anonymize(series, cfg.anonymize_seed) if cfg.anonymize else series
 
 
-def _meta(cfg: Config, export: dict, shortcut: dict) -> dict:
+def _meta(cfg: Config, export: dict, shortcut: dict, healthsync: dict) -> dict:
     return {
         "shortcut_dir": str(cfg.shortcut_dir),
         "healthexport_dir": str(cfg.healthexport_dir) if cfg.healthexport_dir else None,
+        "healthsync_dir": str(cfg.healthsync_dir) if cfg.healthsync_dir else None,
         "days_from_shortcut": len(shortcut),
         "days_from_healthexport": len(export),
+        "days_from_healthsync": len(healthsync),
         "anonymized": cfg.anonymize,
     }
 
@@ -48,7 +81,9 @@ def _meta(cfg: Config, export: dict, shortcut: dict) -> dict:
 
 
 def cmd_sync(cfg: Config, args) -> int:
-    series, export, shortcut = _load_series(cfg)
+    if cfg.healthsync_dir:
+        print(git_pull(cfg))
+    series, export, shortcut, healthsync = _load_series(cfg)
     if not series:
         print("⚠️ 没有找到任何数据，请检查 config.toml 里的路径。", file=sys.stderr)
         return 2
@@ -59,7 +94,7 @@ def cmd_sync(cfg: Config, args) -> int:
 
     dates = sorted(series)
     print(f"✅ 已合并 {len(dates)} 天数据（{dates[0]} → {dates[-1]}）")
-    print(f"   来源：快捷指令 {len(shortcut)} 天 / App 导出 {len(export)} 天")
+    print(f"   来源：health-sync {len(healthsync)} 天 / 快捷指令 {len(shortcut)} 天 / App 导出 {len(export)} 天")
     qc = [d for d, dd in series.items() if dd.get("qc")]
     if qc:
         print(f"   ⚠️ 数据质量存疑 {len(qc)} 天：" + "、".join(qc))
@@ -68,13 +103,13 @@ def cmd_sync(cfg: Config, args) -> int:
 
 
 def cmd_dashboard(cfg: Config, args) -> int:
-    series, export, shortcut = _load_series(cfg)
+    series, export, shortcut, healthsync = _load_series(cfg)
     if not series:
         print("⚠️ 没有找到任何数据，请检查 config.toml 里的路径。", file=sys.stderr)
         return 2
 
     series = _apply_privacy(series, cfg)
-    payload = dashboard.build_payload(series, _meta(cfg, export, shortcut))
+    payload = dashboard.build_payload(series, _meta(cfg, export, shortcut, healthsync))
     out = dashboard.render(payload, cfg.ensure_output_dir() / "health-dashboard.html")
     size_kb = out.stat().st_size / 1024
     print(f"✅ 仪表盘 → {out}（{size_kb:.0f} KB，单文件可直接分享）")
@@ -82,7 +117,7 @@ def cmd_dashboard(cfg: Config, args) -> int:
 
 
 def cmd_report(cfg: Config, args) -> int:
-    series, _export, _shortcut = _load_series(cfg)
+    series, _export, _shortcut, _healthsync = _load_series(cfg)
     if not series:
         print("⚠️ 没有找到任何数据，请检查 config.toml 里的路径。", file=sys.stderr)
         return 2
@@ -102,6 +137,14 @@ def cmd_doctor(cfg: Config, args) -> int:
     if cfg.healthexport_dir:
         ok = "✅ 存在" if cfg.healthexport_dir.exists() else "❌ 不存在"
         print(f"App 导出目录：{cfg.healthexport_dir}  {ok}")
+    if cfg.healthsync_dir:
+        ok = "✅ 存在" if cfg.healthsync_dir.exists() else "❌ 不存在"
+        print(f"health-sync 仓库：{cfg.healthsync_dir}  {ok}")
+        if cfg.healthsync_dir.exists():
+            for name in ("daily_metrics.csv", "sleep_sessions.csv", "workout_sessions.csv"):
+                f = cfg.healthsync_dir / name
+                n = (len(f.read_text(encoding="utf-8-sig").splitlines()) - 1) if f.exists() else -1
+                print(f"  {name}：{'❌ 缺失' if n < 0 else f'{n} 行'}")
 
     files = sorted(cfg.shortcut_dir.glob("*.txt")) if cfg.shortcut_dir.exists() else []
     print(f"\n快捷指令文件：{len(files)} 个")
@@ -128,7 +171,7 @@ def cmd_doctor(cfg: Config, args) -> int:
     else:
         print("  ✅ 未检测到格式问题" if files else "  （无文件）")
 
-    series, _e, _s = _load_series(cfg)
+    series, _e, _s, _h = _load_series(cfg)
     if series:
         dates = sorted(series)
         print(f"\n可解析数据：{len(dates)} 天（{dates[0]} → {dates[-1]}）")
@@ -139,7 +182,7 @@ def cmd_doctor(cfg: Config, args) -> int:
 
 
 def cmd_context(cfg: Config, args) -> int:
-    series, _e, _s = _load_series(cfg)
+    series, _e, _s, _h = _load_series(cfg)
     if not series:
         print("⚠️ 没有找到任何数据，请检查 config.toml 里的路径。", file=sys.stderr)
         return 2
@@ -153,6 +196,15 @@ def cmd_context(cfg: Config, args) -> int:
     else:
         print(text)
     return 0
+
+
+def cmd_pull(cfg: Config, args) -> int:
+    if not cfg.healthsync_dir:
+        print("⚠️ config.toml 未配置 [paths] healthsync_dir，无事可做。", file=sys.stderr)
+        return 1
+    msg = git_pull(cfg)
+    print(msg)
+    return 0 if msg.startswith("✅") else 1
 
 
 def cmd_mcp(cfg: Config, args) -> int:
@@ -172,6 +224,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--version", action="version", version=f"healthpipe {__version__}")
 
     sub = p.add_subparsers(dest="command", required=True)
+    sub.add_parser("pull", help="从 health-sync-data 仓库拉最新数据")
     sub.add_parser("sync", help="解析导出文件，合并成统一时序")
     sub.add_parser("dashboard", help="生成单文件 HTML 仪表盘")
     rp = sub.add_parser("report", help="生成 Markdown 汇总表")
@@ -195,6 +248,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     handlers = {
+        "pull": cmd_pull,
         "sync": cmd_sync,
         "dashboard": cmd_dashboard,
         "report": cmd_report,

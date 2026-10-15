@@ -12,6 +12,12 @@ shortcut_dir = "~/Library/Mobile Documents/com~apple~CloudDocs/HealthData"
 # 例：HealthExport 容器 → ~/Library/Mobile Documents/iCloud~HealthExport/Documents/Health
 healthexport_dir = ""
 
+# health-sync-data 仓库的本地克隆（可选，推荐）
+# iPhone 端定时把 HealthKit 导成 3 个 CSV 推到 GitHub 私有仓库，这里 git pull 即可：
+#   daily_metrics.csv / sleep_sessions.csv / workout_sessions.csv
+# 配了它，`healthpipe sync` 会先自动 git pull；这是最完整的采集端（含运动记录）。
+healthsync_dir = ""
+
 # 产物输出目录（series.json / dashboard.html / 汇总 Markdown）
 output_dir = "./output"
 
