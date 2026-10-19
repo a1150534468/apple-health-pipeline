@@ -2,34 +2,34 @@
 
 > 把 Apple Health 的数据落到本机，再**喂给 AI 托管**。
 >
-> 一条命令生成给模型读的上下文，或者直接挂成 MCP server，让 Claude / Cursor 这类客户端随时查你的睡眠、HRV、心率、活动量。全程 0 元，数据不出本机。
+> 一条命令生成给模型读的上下文，或者直接挂成 MCP server，让 Claude / Cursor 这类客户端随时查你的睡眠、HRV、心率、血氧、活动量。全程 0 元，数据只经过你自己的 GitHub 私有仓库和本机，不经过任何第三方健康数据平台。
 
-替代那些「要么付费、要么把健康数据上传到别人服务器」的导出 App。核心是一个**容错解析器**——
-iPhone 快捷指令拼出来的 JSON 几乎一定是坏的（数字后多一个引号、全角 `］`、尾随逗号），而现有工具都假设它是合法的。
+核心思路：iPhone 端用导出 App 把 HealthKit 定时导成 CSV、推到 **GitHub 私有仓库**，Mac 端 `git pull` 拉下来解析——手机和电脑不需要互相直连。同时兼容老式采集方案（iPhone 快捷指令导出 JSON），自带一个**容错解析器**处理那些几乎一定是坏的 JSON（数字后多一个引号、全角 `］`、尾随逗号）。
 
 ---
 
 ## 数据去哪了
 
 ```
-Apple Watch → Apple 健康 App → iPhone 快捷指令（每天定时导出）
-            → iCloud → Mac 上一个 .txt 文件
-            → healthpipe 解析 → 本地时序 JSON
+Apple Watch → Apple 健康 App → iPhone 导出 App（每天定时导出 3 个 CSV）
+            → GitHub 私有仓库（health-sync-data）
+            → Mac 端 git pull → healthpipe 解析 → 本地时序 JSON
                               ├─ 给 AI：context / MCP   ← 主要用途
                               └─ 给人：单文件 HTML 仪表盘
 ```
 
-macOS 读不到 Apple 健康数据库，所以必须走「手机 → 文件 → 电脑」这一步；之后的解析、统计、脱敏全在本机完成。
+macOS 读不到 Apple 健康数据库，所以数据必须先离开手机；走 GitHub 私有仓库是最省事的中转——两台设备各连 GitHub 就行。之后的解析、统计、脱敏全在本机完成。
 
 ---
 
 ## 特性
 
-- **容错解析** —— 自动修复快捷指令导出的三类固定语法错误，坏文件不会中断整条链路
+- **多源合并 + 权威源机制** —— health-sync 仓库 / 快捷指令 / 第三方 App 导出可任意组合；health-sync 同日期**整天替换**，绝不按字段拼接出混合口径的一天
 - **AI 上下文** —— `healthpipe context` 直接产出模型能读的 Markdown 摘要（当日明细 + 趋势 + 运动记录 + 数据质量）
 - **MCP server** —— `healthpipe mcp` 把健康数据挂成标准 MCP 工具，任何支持 MCP 的客户端即插即用，**零依赖**
+- **字段动态发现** —— MCP 的 `health_fields` 工具列出数据里实际存在的全部字段和覆盖率，采集端换字段/加字段**不用改代码**
 - **运动记录** —— 解析运动明细（类型 / 起止时间 / 时长 / 消耗 / 距离），进 AI 上下文、进仪表盘、有独立 MCP 工具
-- **多源合并** —— 快捷指令导出 + 第三方 App 导出，同一日期自动去重合并
+- **容错解析** —— 自动修复快捷指令导出 JSON 的固定语法错误，坏文件不会中断整条链路（旧方案兼容）
 - **数据质量守门** —— 自动标注「疑似未佩戴手表」「步数异常」等日子，只标注不删数据
 - **单文件仪表盘** —— 图表库内联，产物是一张可离线打开、可直接发出去的 HTML
 - **一键脱敏** —— 生成公开版本时按比例缩放真实值，保留趋势形态
@@ -47,14 +47,17 @@ pip install -e .
 cp config.example.toml config.toml
 ```
 
-打开 `config.toml`，把 `shortcut_dir` 指向你的快捷指令导出目录，然后：
+打开 `config.toml`：
+
+- **推荐**：把 `healthsync_dir` 指向你的健康数据仓库本地克隆（iPhone 端导出 App 推 CSV 到 GitHub 私有仓库，Mac 端克隆下来）；
+- 没有用仓库方案的话，退回 `shortcut_dir`（iPhone 快捷指令导出目录，配置步骤见 [`shortcuts/README.md`](shortcuts/README.md)）。
+
+然后：
 
 ```bash
-healthpipe sync        # 解析 + 合并 → output/series.json
+healthpipe sync        # 自动 git pull → 解析 + 合并 → output/series.json
 healthpipe context     # 打印给 AI 看的摘要
 ```
-
-> iPhone 端的快捷指令配置步骤见 [`shortcuts/README.md`](shortcuts/README.md)。
 
 ---
 
@@ -63,7 +66,8 @@ healthpipe context     # 打印给 AI 看的摘要
 | 命令 | 作用 |
 |---|---|
 | `healthpipe doctor` | 体检：路径是否可达、文件是否损坏、数据质量如何 |
-| `healthpipe sync` | 解析所有导出文件，合并成统一时序 → `output/series.json` |
+| `healthpipe pull` | 只拉数据：对 health-sync 仓库 `git pull --ff-only` |
+| `healthpipe sync` | 自动 git pull → 解析所有来源 → 合并成统一时序 → `output/series.json` |
 | `healthpipe context --days 7` | **输出给 AI 的健康数据上下文**（Markdown，可直接粘进对话） |
 | `healthpipe mcp` | **启动 MCP server（stdio）**，供 AI 客户端挂载 |
 | `healthpipe dashboard` | 生成单文件 HTML 仪表盘 |
@@ -161,7 +165,7 @@ healthpipe context --days 14 --out ctx.md # 或写文件
 | 运动记录 | 每日运动分钟数，悬停看当天的运动明细，卡头显示合计 |
 | 心率趋势 | 日均 / 日最高 / 静息 三条线 |
 | 活动消耗 | 主动运动产生的热量 |
-| 心率曲线 | 全天逐点心率，标出最低 / 最高 |
+| 心率曲线 | 全天逐点心率，标出最低 / 最高（需采集源提供分钟级心率） |
 | 睡眠分期时间轴 | 每段睡眠按分期画在对应行上 |
 
 ![健康数据仪表盘](docs/images/dashboard-full.png)
@@ -174,8 +178,8 @@ healthpipe context --days 14 --out ctx.md # 或写文件
 
 | 来源 | 字段完整度 | 说明 |
 |---|---|---|
-| **health-sync 仓库**（推荐） | 最完整 | iPhone 端定时把 HealthKit 导成 3 个 CSV（`daily_metrics` / `sleep_sessions` / `workout_sessions`）推到 GitHub 私有仓库，Mac 端 `git pull` 即可；**自带运动记录** |
-| iPhone 快捷指令 | 较全 | 含 HRV、静息心率等 HealthKit 原生指标；不含运动记录明细 |
+| **health-sync 仓库**（推荐，主力） | 最完整 | iPhone 端导出 App 定时把 HealthKit 导成 3 个 CSV（`daily_metrics` / `sleep_sessions` / `workout_sessions`）推到 GitHub 私有仓库，Mac 端 `git pull` 即可；**自带运动记录**，另有血氧、呼吸率、站立、爬楼等独有字段 |
+| iPhone 快捷指令（旧方案） | 较全 | 含 HRV、静息心率等 HealthKit 原生指标；不含运动记录明细；导出的 JSON 语法经常是坏的（容错解析器为此而生） |
 | 第三方 App 导出（如 HealthExport） | 较少 | 通常缺 HRV，但可以提供历史存量数据 |
 
 合并规则：快捷指令 / App 导出之间按日期合并，后加载的覆盖先加载的；
@@ -192,35 +196,37 @@ healthpipe context --days 14 --out ctx.md # 或写文件
 python examples/build_demo.py   # → examples/demo-data.json + demo-dashboard.html
 ```
 
-> **注意：只用快捷指令、第一次运行时只有 1 条数据**，攒几天才会出现趋势。上面的 demo 是 31 天，纯粹为了图表好看。
+> 第一次运行时数据少很正常，攒几天才会出现趋势。demo 是 31 天，纯粹为了图表好看。
 
 ### 采集字段
+
+字段名与 `health_series` / `health_fields` 工具里的参数一致：
 
 | 字段 | 含义 | 统计方式 | 单位 |
 |---|---|---|---|
 | `steps` | 步数 | 求和 | 步 |
 | `distance_km` | 步行 + 跑步距离 | 求和 | km |
-| `active_energy_kcal` | 活动能量 | 求和 | kcal |
+| `active_kcal` | 活动能量 | 求和 | kcal |
 | `exercise_min` | 锻炼分钟数 | 求和 | min |
-| `basal_energy_kcal` | 静息（基础）能量 | 求和 | kcal |
+| `basal_kcal` | 静息（基础）能量 | 求和 | kcal |
 | `hrv_ms` | 心率变异性（HealthKit 原生 SDNN） | 平均 | ms |
-| `resting_hr` | 静息心率（HealthKit 原生） | 平均 | bpm |
+| `hr_resting` | 静息心率（HealthKit 原生） | 平均 | bpm |
 | `spo2_avg` | 血氧（HealthKit 小数已换算成百分数；仅 health-sync 源） | 平均 | % |
 | `resp_rate` | 呼吸率（仅 health-sync 源） | 平均 | 次/分 |
 | `stand_min` | 站立时间（仅 health-sync 源） | 求和 | min |
 | `flights` | 爬楼层（仅 health-sync 源） | 求和 | 层 |
-| `heart_rate` | 全天逐条心率 | 逐条 | bpm |
+| `heart_rate` | 全天逐条心率（仅快捷指令 / App 源） | 逐条 | bpm |
 | `sleep` | 睡眠分期分段 | 逐段 | — |
 | `workouts`（可选） | 运动记录：`type` / `start` / `end` / `duration_min` / `calories` / `distance_km` / `avg_hr` | 逐条 | — |
 
 > 累计型指标（步数、能量、距离）随一天推移不断增长，**必须每天固定同一时间点采集**，跨天的数据才可比。
 > health-sync 源由 iPhone 端在固定时间导出，天然满足这条；快捷指令源则取决于自动化跑的时间。
 >
-> `workouts` 在 health-sync 源里**自带**（`workout_sessions.csv`）；快捷指令源要在采集端产出（见 [`shortcuts/README.md`](shortcuts/README.md)）。
-> 没有这个字段时其余功能完全不受影响。
->
-> health-sync 源**不含分钟级心率**（`heart_rate` 逐条 / `hr_points`），因此仪表盘的「今日心率曲线」
+> health-sync 源**不含分钟级心率**（`heart_rate` 逐条），因此仪表盘的「今日心率曲线」
 > 在只有 health-sync 数据时会显示提示而不是曲线；全天心率的最值与均值仍由 `daily_metrics.csv` 提供。
+>
+> `workouts` 在 health-sync 源里**自带**（`workout_sessions.csv`）；快捷指令源要在采集端额外产出（见 [`shortcuts/README.md`](shortcuts/README.md)）。
+> 没有这个字段时其余功能完全不受影响。
 >
 > HRV 用的是 HealthKit 原生 SDNN 值。**不要用分钟级心率去反推 RMSSD** —— 两者量纲不同，实测能差 13 倍（3.7 vs 47.2 ms），据此得的结论全是错的。
 
@@ -230,8 +236,9 @@ python examples/build_demo.py   # → examples/demo-data.json + demo-dashboard.h
 
 ```
 src/healthpipe/
-├── repair.py      ★ 容错解析器（本项目的核心）
+├── repair.py      ★ 容错解析器（快捷指令坏 JSON 的修复）
 ├── sources.py     数据源适配与合并
+├── pipeline.py    ★ 统一加载管线（CLI 与 MCP 共用，加载逻辑只存一份）
 ├── metrics.py     派生指标、质量守门、脱敏
 ├── context.py     ★ 生成给 LLM 的上下文
 ├── mcp_server.py  ★ MCP server（stdio，零依赖）
@@ -245,15 +252,24 @@ src/healthpipe/
 
 ## 常见问题
 
-**运行报 `XPC error`** → 去 iPhone「设置 → 快捷指令 → 高级」，打开「允许共享大量数据」。
+**git pull 失败 / 网络不通** → `sync` 会打印警告并降级用本地已有数据继续，不中断；回头网络好了单独跑 `healthpipe pull` 即可。注意 `healthsync_dir` 必须是仓库的 git 克隆（有 `.git` 目录）。
 
-**找不到导出文件** → 检查 `config.toml` 的 `shortcut_dir`。路径里如果带前导空格（例如 ` tmp`），空格要原样写上。
-
-**某天没有数据** → iOS 锁屏时会限制健康数据访问，自动化运行时手机锁着可能取不到。连续观察几天。
+**今天的步数/消耗看起来偏低** → 导出 App 是定时推数的，当天还没过完时累计型指标天然偏低，第二天会被完整数据覆盖（回填是常态）。判断某天是否完整：`basal_kcal` 明显低于其他天就是残缺日。
 
 **AI 客户端里看不到 healthpipe 工具** → ① `command` 必须写绝对路径；② 改完配置要重启客户端；③ 先在终端跑一次 `healthpipe doctor` 确认路径没配错。
 
 **想发到公开场合** → 把 `config.toml` 里 `[privacy] anonymize` 设为 `true`，会按比例缩放真实数值。
+
+<details>
+<summary>旧采集方式（iPhone 快捷指令）的常见问题</summary>
+
+**运行报 `XPC error`** → 去 iPhone「设置 → 快捷指令 → 高级」，打开「允许共享大量数据」。
+
+**找不到导出文件** → 检查 `config.toml` 的 `shortcut_dir`。路径里如果带空格（前导空格也算），要原样写上。
+
+**某天没有数据** → iOS 锁屏时会限制健康数据访问，自动化运行时手机锁着可能取不到。连续观察几天。
+
+</details>
 
 ---
 

@@ -1,5 +1,8 @@
 # iPhone 快捷指令
 
+> ℹ️ **这是旧采集方案**。主推方案是 health-sync 仓库（iPhone 导出 App → GitHub 私有仓库 → `git pull`），
+> 字段更全、数据更干净，见主 README 的「数据来源」。本方案仍可用，适合不想装额外 App 的场景。
+
 ## 文件
 
 | 文件 | 说明 |
